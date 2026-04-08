@@ -3,7 +3,7 @@ version: '3.8'
 services:
   ubuntu-anaconda:
     image: tuna/ubuntu:24.04
-    container_name: ubuntu-anaconda-container
+    container_name: tool-container
     deploy:
       resources:
         limits:
