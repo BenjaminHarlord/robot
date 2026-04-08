@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  ubuntu-anaconda:
+    image: tuna/ubuntu:24.04
+    container_name: tool-container
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+    cap_add:
+      - SYS_ADMIN
+    # CPU使用率限制通过cpus和cpu_quota/cpu_period实现
+    # 4核心的40% = 1.6核心，设置为160000微秒配额/100000微秒周期
+    cpu_quota: 160000
+    cpu_period: 100000
+    mem_limit: 8g
+    volumes:
+      - ./data:/workspace
+    command: |
+      bash -c "
+        apt-get update && 
+        apt-get install -y wget curl bzip2 ca-certificates &&
+        wget https://mirrors.tuna.tsinghua.edu.cn/anaconda/archive/Anaconda3-2024.02-Linux-x86_64.sh -O /tmp/anaconda.sh &&
+        bash /tmp/anaconda.sh -b -p /opt/anaconda3 &&
+        rm /tmp/anaconda.sh &&
+        export PATH=/opt/anaconda3/bin:$$PATH &&
+        tail -f /dev/null
+      "
+    working_dir: /workspace
