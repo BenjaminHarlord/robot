@@ -8,6 +8,7 @@
 *.bmp
 *.tmp
 *.idea
+/robot/.git.bak.tar.gz
 **/datasets/
 cmake-build-*/
 /robot/src/model/url_tool/datasets/
