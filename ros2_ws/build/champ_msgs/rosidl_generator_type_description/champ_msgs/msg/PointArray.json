@@ -1,0 +1,96 @@
+{
+  "type_description_msg": {
+    "type_description": {
+      "type_name": "champ_msgs/msg/PointArray",
+      "fields": [
+        {
+          "name": "lf",
+          "type": {
+            "type_id": 1,
+            "capacity": 0,
+            "string_capacity": 0,
+            "nested_type_name": "champ_msgs/msg/Point"
+          },
+          "default_value": ""
+        },
+        {
+          "name": "rf",
+          "type": {
+            "type_id": 1,
+            "capacity": 0,
+            "string_capacity": 0,
+            "nested_type_name": "champ_msgs/msg/Point"
+          },
+          "default_value": ""
+        },
+        {
+          "name": "lh",
+          "type": {
+            "type_id": 1,
+            "capacity": 0,
+            "string_capacity": 0,
+            "nested_type_name": "champ_msgs/msg/Point"
+          },
+          "default_value": ""
+        },
+        {
+          "name": "rh",
+          "type": {
+            "type_id": 1,
+            "capacity": 0,
+            "string_capacity": 0,
+            "nested_type_name": "champ_msgs/msg/Point"
+          },
+          "default_value": ""
+        }
+      ]
+    },
+    "referenced_type_descriptions": [
+      {
+        "type_name": "champ_msgs/msg/Point",
+        "fields": [
+          {
+            "name": "x",
+            "type": {
+              "type_id": 10,
+              "capacity": 0,
+              "string_capacity": 0,
+              "nested_type_name": ""
+            },
+            "default_value": ""
+          },
+          {
+            "name": "y",
+            "type": {
+              "type_id": 10,
+              "capacity": 0,
+              "string_capacity": 0,
+              "nested_type_name": ""
+            },
+            "default_value": ""
+          },
+          {
+            "name": "z",
+            "type": {
+              "type_id": 10,
+              "capacity": 0,
+              "string_capacity": 0,
+              "nested_type_name": ""
+            },
+            "default_value": ""
+          }
+        ]
+      }
+    ]
+  },
+  "type_hashes": [
+    {
+      "type_name": "champ_msgs/msg/PointArray",
+      "hash_string": "RIHS01_f0c7284c087c4ca54df46590d8ccc75f139c12f6d437e634ebf806cbe3f027b7"
+    },
+    {
+      "type_name": "champ_msgs/msg/Point",
+      "hash_string": "RIHS01_e51d61a1f48c574026a4c794d7f1e2377171ceeba1f88a2e59d03592da7ceb01"
+    }
+  ]
+}

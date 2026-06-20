@@ -1,0 +1,20 @@
+{
+  "package_name": "champ_msgs",
+  "output_dir": "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/rosidl_generator_type_description/champ_msgs",
+  "idl_tuples": [
+    "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/rosidl_adapter/champ_msgs:msg/Velocities.idl",
+    "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/rosidl_adapter/champ_msgs:msg/PID.idl",
+    "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/rosidl_adapter/champ_msgs:msg/Imu.idl",
+    "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/rosidl_adapter/champ_msgs:msg/Point.idl",
+    "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/rosidl_adapter/champ_msgs:msg/PointArray.idl",
+    "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/rosidl_adapter/champ_msgs:msg/Joints.idl",
+    "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/rosidl_adapter/champ_msgs:msg/Contacts.idl",
+    "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/rosidl_adapter/champ_msgs:msg/ContactsStamped.idl",
+    "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/rosidl_adapter/champ_msgs:msg/Pose.idl"
+  ],
+  "include_paths": [
+    "std_msgs:/opt/ros/jazzy/share/std_msgs",
+    "builtin_interfaces:/opt/ros/jazzy/share/builtin_interfaces",
+    "geometry_msgs:/opt/ros/jazzy/share/geometry_msgs"
+  ]
+}

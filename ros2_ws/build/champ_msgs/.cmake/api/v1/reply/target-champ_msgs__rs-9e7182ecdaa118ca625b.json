@@ -1,0 +1,73 @@
+{
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target"
+		],
+		"files" : 
+		[
+			"/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/champ_msgs__rs/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 35,
+				"parent" : 0
+			}
+		]
+	},
+	"id" : "champ_msgs__rs::@6f3780454e386aa153c7",
+	"name" : "champ_msgs__rs",
+	"paths" : 
+	{
+		"build" : "champ_msgs__rs",
+		"source" : "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/champ_msgs__rs"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				1,
+				2
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/champ_msgs__rs/CMakeFiles/champ_msgs__rs",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/champ_msgs__rs/CMakeFiles/champ_msgs__rs.rule",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/rosidl_generator_rs/champ_msgs/rust/src/lib.rs.rule",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "UTILITY"
+}

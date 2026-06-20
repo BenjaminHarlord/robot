@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "champ_msgs__py",
+		"source" : "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/champ_msgs__py"
+	}
+}

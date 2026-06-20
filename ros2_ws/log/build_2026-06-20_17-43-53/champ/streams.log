@@ -1,0 +1,71 @@
+[0.018s] Invoking command in '/home/andre/dev_root/robot/ros2_ws/build/champ': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake /home/andre/dev_root/robot/ros2_ws/src/unitree_go2_ros2/champ -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/andre/dev_root/robot/ros2_ws/install/champ
+[0.072s] -- The C compiler identification is GNU 13.3.0
+[0.123s] -- The CXX compiler identification is GNU 13.3.0
+[0.140s] -- Detecting C compiler ABI info
+[0.226s] -- Detecting C compiler ABI info - done
+[0.232s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.233s] -- Detecting C compile features
+[0.233s] -- Detecting C compile features - done
+[0.242s] -- Detecting CXX compiler ABI info
+[0.332s] -- Detecting CXX compiler ABI info - done
+[0.338s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.338s] -- Detecting CXX compile features
+[0.339s] -- Detecting CXX compile features - done
+[0.343s] -- Found ament_cmake: 2.5.6 (/opt/ros/jazzy/share/ament_cmake/cmake)
+[0.464s] -- Found Python3: /usr/bin/python3 (found version "3.12.3") found components: Interpreter 
+[0.518s] -- Override CMake install command with custom implementation using symlinks instead of copying resources
+[0.566s] -- Found rclcpp: 28.1.21 (/opt/ros/jazzy/share/rclcpp/cmake)
+[0.612s] -- Found rosidl_generator_c: 4.6.9 (/opt/ros/jazzy/share/rosidl_generator_c/cmake)
+[0.625s] -- Found rosidl_generator_cpp: 4.6.9 (/opt/ros/jazzy/share/rosidl_generator_cpp/cmake)
+[0.641s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.658s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.727s] -- Found rmw_implementation_cmake: 7.3.3 (/opt/ros/jazzy/share/rmw_implementation_cmake/cmake)
+[0.731s] -- Found rmw_fastrtps_cpp: 8.4.4 (/opt/ros/jazzy/share/rmw_fastrtps_cpp/cmake)
+[0.823s] -- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.13")  
+[0.841s] -- Found FastRTPS: /opt/ros/jazzy/include (Required is at least version "2.13") 
+[0.861s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[0.933s] -- Found ament_lint_auto: 0.17.5 (/opt/ros/jazzy/share/ament_lint_auto/cmake)
+[0.997s] -- Configuring done (1.0s)
+[1.003s] -- Generating done (0.0s)
+[1.005s] -- Build files have been written to: /home/andre/dev_root/robot/ros2_ws/build/champ
+[1.017s] Invoked command in '/home/andre/dev_root/robot/ros2_ws/build/champ' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake /home/andre/dev_root/robot/ros2_ws/src/unitree_go2_ros2/champ -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/andre/dev_root/robot/ros2_ws/install/champ
+[1.017s] Invoking command in '/home/andre/dev_root/robot/ros2_ws/build/champ': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake --build /home/andre/dev_root/robot/ros2_ws/build/champ -- -j8 -l8
+[1.061s] Invoked command in '/home/andre/dev_root/robot/ros2_ws/build/champ' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake --build /home/andre/dev_root/robot/ros2_ws/build/champ -- -j8 -l8
+[1.063s] Invoking command in '/home/andre/dev_root/robot/ros2_ws/build/champ': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake --install /home/andre/dev_root/robot/ros2_ws/build/champ
+[1.071s] -- Install configuration: ""
+[1.071s] -- Execute custom install script
+[1.072s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/LICENSE
+[1.082s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/README.md
+[1.090s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/bla/basic_linear_algebra.h
+[1.099s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/bla/memory_delegate.h
+[1.107s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/body_controller/body_controller.h
+[1.117s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/geometry/geometry.h
+[1.127s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/kinematics/kinematics.h
+[1.136s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/leg_controller/leg_controller.h
+[1.144s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/leg_controller/phase_generator.h
+[1.153s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/leg_controller/trajectory_planner.h
+[1.161s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/macros/macros.h
+[1.170s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/odometry/odometry.h
+[1.178s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/quadruped_base/quadruped_base.h
+[1.187s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/quadruped_base/quadruped_components.h
+[1.195s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/quadruped_base/quadruped_joint.h
+[1.203s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/quadruped_base/quadruped_leg.h
+[1.211s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/utils/urdf_loader.h
+[1.222s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/include/champ/utils/xmlrpc_helpers.h
+[1.231s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/ament_index/resource_index/package_run_dependencies/champ
+[1.240s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/ament_index/resource_index/parent_prefix_path/champ
+[1.248s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/champ/environment/ament_prefix_path.sh
+[1.257s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/champ/environment/ament_prefix_path.dsv
+[1.265s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/champ/environment/path.sh
+[1.273s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/champ/environment/path.dsv
+[1.281s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/champ/local_setup.bash
+[1.289s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/champ/local_setup.sh
+[1.298s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/champ/local_setup.zsh
+[1.306s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/champ/local_setup.dsv
+[1.317s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/champ/package.dsv
+[1.328s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/ament_index/resource_index/packages/champ
+[1.337s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/champ/cmake/ament_cmake_export_include_directories-extras.cmake
+[1.345s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/champ/cmake/champConfig.cmake
+[1.354s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/champ/cmake/champConfig-version.cmake
+[1.363s] -- Symlinking: /home/andre/dev_root/robot/ros2_ws/install/champ/share/champ/package.xml
+[1.373s] Invoked command in '/home/andre/dev_root/robot/ros2_ws/build/champ' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake --install /home/andre/dev_root/robot/ros2_ws/build/champ

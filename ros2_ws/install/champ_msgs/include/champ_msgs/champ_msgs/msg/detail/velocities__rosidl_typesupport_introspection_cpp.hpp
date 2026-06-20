@@ -1,0 +1,1 @@
+/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/rosidl_typesupport_introspection_cpp/champ_msgs/msg/detail/velocities__rosidl_typesupport_introspection_cpp.hpp
