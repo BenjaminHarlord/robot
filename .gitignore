@@ -1,0 +1,15 @@
+*.bak
+*.png
+*.jpj
+*.svg
+*.jpeg
+*.png
+*.pt
+*.bmp
+*.tmp
+*.idea
+**/datasets/
+cmake-build-*/
+/robot/src/model/url_tool/datasets/
+/robot/src/model/train/src/
+/robot/src/model/url_tool/
