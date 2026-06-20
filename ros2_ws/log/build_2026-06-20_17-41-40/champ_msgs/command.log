@@ -1,2 +1,0 @@
-Invoking command in '/home/andre/dev_root/robot/ros2_ws/build/champ_msgs': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake /home/andre/dev_root/robot/ros2_ws/src/unitree_go2_ros2/champ_msgs -DCMAKE_INSTALL_PREFIX=/home/andre/dev_root/robot/ros2_ws/install/champ_msgs
-Invoked command in '/home/andre/dev_root/robot/ros2_ws/build/champ_msgs' returned '1': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake /home/andre/dev_root/robot/ros2_ws/src/unitree_go2_ros2/champ_msgs -DCMAKE_INSTALL_PREFIX=/home/andre/dev_root/robot/ros2_ws/install/champ_msgs

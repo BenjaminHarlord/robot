@@ -14,3 +14,4 @@ cmake-build-*/
 /robot/src/model/url_tool/datasets/
 /robot/src/model/train/src/
 /robot/src/model/url_tool/
+/robot/gazebo/world_model/

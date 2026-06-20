@@ -1,1 +1,0 @@
-ament_cmake_symlink_install_targets("TARGET_FILES" "/home/andre/dev_root/robot/ros2_ws/build/champ_msgs/rosidl_generator_py/champ_msgs/champ_msgs_s__rosidl_typesupport_introspection_c.so" "TARGETS" "champ_msgs_s__rosidl_typesupport_introspection_c" "DESTINATION" "lib/python3.12/site-packages/champ_msgs")
