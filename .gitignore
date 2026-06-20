@@ -8,6 +8,7 @@
 *.bmp
 *.tmp
 *.idea
+*CMakeList.txt
 /robot/.git.bak.tar.gz
 **/datasets/
 cmake-build-*/
@@ -15,3 +16,4 @@ cmake-build-*/
 /robot/src/model/train/src/
 /robot/src/model/url_tool/
 /robot/gazebo/world_model/
+/robot/ros2_ws/
