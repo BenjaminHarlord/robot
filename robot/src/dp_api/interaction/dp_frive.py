@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QFormLayout, QMessageBox, QComboBox, QDoubleSpinBox, QSpinBox
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QFont, QTextCursor, QColor, QKeyEvent
+from PyQt6.QtGui import QFont, QTextCursor, QKeyEvent
 
 
 class ApiWorker(QThread):
@@ -16,13 +16,12 @@ class ApiWorker(QThread):
     finished_signal = pyqtSignal(dict)
     error_signal = pyqtSignal(str)
 
-    def __init__(self, base_url, api_key, model, messages, stream, temperature, max_tokens):
+    def __init__(self, base_url, api_key, model, messages, temperature, max_tokens):
         super().__init__()
         self.base_url = base_url
         self.api_key = api_key
         self.model = model
         self.messages = messages
-        self.stream = stream
         self.temperature = temperature
         self.max_tokens = max_tokens
 
@@ -36,53 +35,37 @@ class ApiWorker(QThread):
             body = {
                 "model": self.model,
                 "messages": self.messages,
-                "stream": self.stream,
+                "stream": True,
                 "temperature": self.temperature,
                 "max_tokens": self.max_tokens,
-                "extra_body": {"thinking": {"type": "disabled"}},
+                "thinking": {"type": "disabled"},
             }
 
-            if self.stream:
-                response = requests.post(url, headers=headers, json=body, stream=True, timeout=120)
+            response = requests.post(url, headers=headers, json=body, stream=True, timeout=120)
 
-                if response.status_code != 200:
-                    self.error_signal.emit(f"HTTP {response.status_code}: {response.text[:500]}")
-                    return
+            if response.status_code != 200:
+                self.error_signal.emit(f"HTTP {response.status_code}: {response.text[:500]}")
+                return
 
-                full_content = ""
-                for line in response.iter_lines(decode_unicode=True):
-                    if line and line.startswith("data: "):
-                        data_str = line[6:]
-                        if data_str == "[DONE]":
-                            break
-                        try:
-                            data = json.loads(data_str)
-                            choices = data.get("choices", [])
-                            if choices:
-                                delta = choices[0].get("delta", {})
-                                content = delta.get("content", "")
-                                if content:
-                                    full_content += content
-                                    self.chunk_signal.emit(content)
-                        except json.JSONDecodeError:
-                            pass
+            full_content = ""
+            for line in response.iter_lines(decode_unicode=True):
+                if line and line.startswith("data: "):
+                    data_str = line[6:]
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        data = json.loads(data_str)
+                        choices = data.get("choices", [])
+                        if choices:
+                            delta = choices[0].get("delta", {})
+                            content = delta.get("content", "")
+                            if content:
+                                full_content += content
+                                self.chunk_signal.emit(content)
+                    except json.JSONDecodeError:
+                        pass
 
-                self.finished_signal.emit({"content": full_content})
-            else:
-                response = requests.post(url, headers=headers, json=body, timeout=120)
-
-                if response.status_code != 200:
-                    self.error_signal.emit(f"HTTP {response.status_code}: {response.text[:500]}")
-                    return
-
-                data = response.json()
-                choices = data.get("choices", [])
-                if choices:
-                    content = choices[0].get("message", {}).get("content", "")
-                    self.chunk_signal.emit(content)
-                    self.finished_signal.emit({"content": content})
-                else:
-                    self.error_signal.emit("API 返回为空")
+            self.finished_signal.emit({"content": full_content})
 
         except requests.exceptions.Timeout:
             self.error_signal.emit("请求超时，请检查网络")
@@ -154,7 +137,6 @@ class ChatWindow(QMainWindow):
         )
         props = schema.get("properties", {})
         self.default_model = props.get("model", {}).get("default", "deepseek-v4-flash")
-        self.default_stream = props.get("stream", {}).get("default", True)
         self.default_temperature = props.get("temperature", {}).get("default", 1.0)
         self.default_max_tokens = props.get("max_tokens", {}).get("default", 4096)
 
@@ -202,7 +184,9 @@ class ChatWindow(QMainWindow):
 
         self.chat_display = QTextEdit()
         self.chat_display.setReadOnly(True)
-        self.chat_display.setStyleSheet("QTextEdit { background-color: #f5f5f5; border: 1px solid #ccc; border-radius: 4px; padding: 8px; }")
+        self.chat_display.setStyleSheet(
+            "QTextEdit { background-color: #f5f5f5; border: 1px solid #ccc; border-radius: 4px; padding: 8px; }"
+        )
         self.chat_display.setFont(QFont("Microsoft YaHei", 10))
         main_layout.addWidget(self.chat_display, stretch=1)
 
@@ -214,8 +198,9 @@ class ChatWindow(QMainWindow):
         self.input_field.setMinimumHeight(50)
         self.input_field.setPlaceholderText("输入消息，按 Ctrl+Enter 发送...")
         self.input_field.setFont(QFont("Microsoft YaHei", 10))
-        self.input_field.setStyleSheet("QTextEdit { border: 1px solid #aaa; border-radius: 4px; padding: 6px; }")
-        self.input_field.installEventFilter(self)
+        self.input_field.setStyleSheet(
+            "QTextEdit { border: 1px solid #aaa; border-radius: 4px; padding: 6px; }"
+        )
         input_layout.addWidget(self.input_field, stretch=1)
 
         btn_layout = QVBoxLayout()
@@ -246,16 +231,15 @@ class ChatWindow(QMainWindow):
         apikey_action = settings_menu.addAction("设置 API Key")
         apikey_action.triggered.connect(self.show_api_key_dialog)
 
-    def eventFilter(self, obj, event):
-        if obj is self.input_field and event.type() == QKeyEvent.Type.KeyPress:
-            key_event = event
-            if (
-                key_event.key() == Qt.Key.Key_Return
-                and key_event.modifiers() == Qt.KeyboardModifier.ControlModifier
-            ):
+    def keyPressEvent(self, event):
+        if (
+            event.key() == Qt.Key.Key_Return
+            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
+        ):
+            if self.input_field.hasFocus():
                 self.send_message()
-                return True
-        return super().eventFilter(obj, event)
+                return
+        super().keyPressEvent(event)
 
     def show_api_key_dialog(self):
         dialog = ApiKeyDialog(self)
@@ -305,8 +289,7 @@ class ChatWindow(QMainWindow):
 
         self.worker = ApiWorker(
             self.base_url, api_key, model,
-            self.messages.copy(), True,
-            temperature, max_tokens
+            self.messages.copy(), temperature, max_tokens
         )
         self.worker.chunk_signal.connect(self.on_chunk)
         self.worker.finished_signal.connect(self.on_finished)
