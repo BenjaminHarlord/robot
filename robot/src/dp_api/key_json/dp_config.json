@@ -1,0 +1,171 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "DeepSeek V4 Flash Chat API",
+    "description": "DeepSeek V4 Flash 对话补全 API 配置文件",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.deepseek.com",
+      "description": "DeepSeek API 服务器"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API Key",
+        "description": "在 https://platform.deepseek.com/api_keys 创建 API Key"
+      }
+    }
+  },
+  "paths": {
+    "/chat/completions": {
+      "post": {
+        "summary": "对话补全",
+        "description": "根据输入的上下文，让模型补全对话内容。",
+        "operationId": "createChatCompletion",
+        "tags": ["Chat"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["model", "messages"],
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "default": "deepseek-v4-flash",
+                    "enum": ["deepseek-v4-flash", "deepseek-v4-pro"],
+                    "description": "使用的模型 ID。deepseek-v4-flash 为快速模型，deepseek-v4-pro 为推理模型。"
+                  },
+                  "messages": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "对话的消息列表，按时间顺序排列。",
+                    "items": {
+                      "type": "object",
+                      "required": ["role", "content"],
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": ["system", "user", "assistant"],
+                          "description": "消息发起角色"
+                        },
+                        "content": {
+                          "type": "string",
+                          "description": "消息内容"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "可选参与者名称，用于区分相同角色的不同参与者"
+                        }
+                      }
+                    }
+                  },
+                  "stream": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "是否使用 SSE 流式输出，设为 true 可获得实时打字效果"
+                  },
+                  "temperature": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 2,
+                    "default": 1.0,
+                    "description": "采样温度，0~2。值越高输出越随机，越低越确定。"
+                  },
+                  "max_tokens": {
+                    "type": "integer",
+                    "nullable": true,
+                    "default": 4096,
+                    "description": "生成 completion 的最大 token 数。受模型上下文长度限制。"
+                  },
+                  "top_p": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "default": 1.0,
+                    "description": "核采样参数。模型仅考虑概率累积达到 top_p 的 token。"
+                  },
+                  "thinking": {
+                    "type": "object",
+                    "nullable": true,
+                    "description": "控制思考模式（仅 deepseek-v4-pro 支持）",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["enabled", "disabled"],
+                        "default": "enabled"
+                      }
+                    }
+                  },
+                  "reasoning_effort": {
+                    "type": "string",
+                    "enum": ["high", "max"],
+                    "description": "控制推理强度（仅 deepseek-v4-pro 支持）"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功返回对话补全结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "string"},
+                    "object": {"type": "string", "default": "chat.completion"},
+                    "created": {"type": "integer"},
+                    "model": {"type": "string"},
+                    "choices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "index": {"type": "integer"},
+                          "message": {
+                            "type": "object",
+                            "properties": {
+                              "role": {"type": "string"},
+                              "content": {"type": "string"},
+                              "reasoning_content": {"type": "string"}
+                            }
+                          },
+                          "finish_reason": {
+                            "type": "string",
+                            "enum": ["stop", "length", "content_filter", "tool_calls", "insufficient_system_resource"]
+                          }
+                        }
+                      }
+                    },
+                    "usage": {
+                      "type": "object",
+                      "properties": {
+                        "prompt_tokens": {"type": "integer"},
+                        "completion_tokens": {"type": "integer"},
+                        "total_tokens": {"type": "integer"}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
