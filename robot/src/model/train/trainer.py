@@ -93,7 +93,7 @@ class YOLOTrainer:
             'hsv_v': 0.4,
 
             'seed': 42,
-            'patience': 20,  # 可以适当降低
+            'patience': 30,  # 可以适当降低
             'save': True,
             'save_period': 10,
             'val': True,

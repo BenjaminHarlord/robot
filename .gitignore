@@ -17,3 +17,4 @@ cmake-build-*/
 /robot/src/model/url_tool/
 /robot/gazebo/world_model/
 /robot/ros2_ws/
+/robot/src/dp_api/key_json/dp_config.json
