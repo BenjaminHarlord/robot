@@ -1,610 +1,233 @@
-import csv
-import json
+import hashlib
 import os
 import re
-import sys
-from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 import requests
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer, QUrl
-from PyQt6.QtGui import QFont, QTextCursor, QDesktopServices
-from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QTextEdit, QTextBrowser, QPushButton, QLabel, QLineEdit, QDialog, QDialogButtonBox,
-    QFormLayout, QMessageBox, QComboBox, QDoubleSpinBox, QSpinBox
-)
+from PyQt6.QtCore import QThread, pyqtSignal, QTimer, QObject
+from PyQt6.QtGui import QPixmap
+
+try:
+    import tomllib
+except ImportError:
+    try:
+        import tomli as tomllib
+    except ImportError:
+        tomllib = None
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-WORKSPACE_ROOT = SCRIPT_DIR.parents[3]
-MIDDLEWARE_DIR = WORKSPACE_ROOT / "robot" / "tool_chain" / "Middleware"
-if str(MIDDLEWARE_DIR) not in sys.path:
-    sys.path.insert(0, str(MIDDLEWARE_DIR))
+DEFAULT_CONFIG_PATH = SCRIPT_DIR / "dp_image_research.toml"
 
-from dp_chat import ChatImageMiddleware, ImageResearchConfig, extract_image_urls
-
-USER_CONFIG_PATH = WORKSPACE_ROOT / "robot" / "dataclume" / "user" / "user.json"
-CSV_RECORD_DIR = Path("/home/andre/dev_root/robot/QRP/dp_record")
-MAX_RECORDS_PER_FILE = 100000
-CSV_FIELDS = ["u_id", "u_na", "u_position", "u_message", "model_name", "u_tkTime", "u_ask"]
-
-_MD_IMG_RE = re.compile(r'!\[([^\]]*)\]\(([^)\s]+)\)')
-_MD_LINK_RE = re.compile(r'(?<!\!)\[([^\]]+)\]\(([^)\s]+)\)')
-_MD_BOLD_RE = re.compile(r'\*\*(.+?)\*\*')
-_MD_ITALIC_RE = re.compile(r'\*(.+?)\*')
-_MD_CODE_INLINE_RE = re.compile(r'`([^`]+)`')
-_MD_CODE_BLOCK_RE = re.compile(r'```(\w*)\n?(.*?)```', re.DOTALL)
-_RAW_IMG_URL_RE = re.compile(r'(https?://[^\s<>"\']+\.(?:png|jpe?g|gif|webp|bmp|svg)(?:\?[^\s<>"\']*)?)', re.IGNORECASE)
+IMAGE_EXT_PAT = re.compile(r"\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$", re.IGNORECASE)
+MARKDOWN_IMG_PAT = re.compile(r"!\[([^\]]*)\]\(([^)\s]+)\)")
+RAW_URL_PAT = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
 
 
-def md_to_html(text):
-    buf = text
-
-    blocks = []
-    last = 0
-    for m in _MD_CODE_BLOCK_RE.finditer(buf):
-        blocks.append(("text", buf[last:m.start()]))
-        lang = m.group(1) or ""
-        code = m.group(2)
-        code_escaped = code.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        blocks.append(("code", f'<pre style="background:#2d2d2d;color:#f8f8f2;padding:12px;'
-                               f'border-radius:6px;overflow-x:auto;font-family:monospace;'
-                               f'font-size:9pt;margin:8px 0;line-height:1.4;">'
-                               f'{code_escaped}</pre>'))
-        last = m.end()
-    blocks.append(("text", buf[last:]))
-
-    result_parts = []
-    for kind, part in blocks:
-        if kind == "code":
-            result_parts.append(part)
-        else:
-            part = _MD_IMG_RE.sub(
-                lambda m: (f'<br><img src="{m.group(2)}" alt="{m.group(1)}" '
-                           f'style="max-width:480px;max-height:360px;border-radius:6px;'
-                           f'margin:8px 0;display:block;"><br>'),
-                part)
-            part = _MD_LINK_RE.sub(r'<a href="\2" style="color:#2e7d32;">\1</a>', part)
-            part = _MD_BOLD_RE.sub(r'<b>\1</b>', part)
-            part = _MD_ITALIC_RE.sub(r'<i>\1</i>', part)
-            part = _MD_CODE_INLINE_RE.sub(
-                r'<code style="background:#f0f0f0;padding:2px 5px;border-radius:3px;'
-                r'font-family:monospace;font-size:9pt;">\1</code>', part)
-            lines = part.split("\n")
-            for i, line in enumerate(lines):
-                if line.startswith("### "):
-                    lines[i] = f'<h4 style="margin:6px 0 2px 0;">{line[4:]}</h4>'
-                elif line.startswith("## "):
-                    lines[i] = f'<h3 style="margin:8px 0 2px 0;">{line[3:]}</h3>'
-                elif line.startswith("# "):
-                    lines[i] = f'<h2 style="margin:10px 0 2px 0;">{line[2:]}</h2>'
-                elif re.match(r'^\d+\.\s', line):
-                    lines[i] = f'<div style="margin-left:16px;">{line}</div>'
-                elif line.startswith("- "):
-                    lines[i] = f'<div style="margin-left:16px;">&#8226; {line[2:]}</div>'
-            part = "<br>".join(lines)
-            result_parts.append(part)
-
-    html = "".join(result_parts)
-    return html
+def extract_image_urls(text, parse_markdown=True, parse_raw=True):
+    urls = []
+    if parse_markdown:
+        for match in MARKDOWN_IMG_PAT.finditer(text):
+            urls.append(match.group(2))
+    if parse_raw:
+        for match in RAW_URL_PAT.finditer(text):
+            url = match.group(0).rstrip(".,;:!?)")
+            if IMAGE_EXT_PAT.search(url) and url not in urls:
+                urls.append(url)
+    return urls
 
 
-class UserConfig:
-    def __init__(self, config_path):
-        self.config_path = Path(config_path)
-        if self.config_path.exists():
-            with open(self.config_path, "r", encoding="utf-8") as f:
-                self.data = json.load(f)
-        else:
-            self.data = {}
+class ImageResearchConfig:
+    def __init__(self, config_path=None):
+        self.config_path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
+        self.data = {}
+        if tomllib and self.config_path.exists():
+            with open(self.config_path, "rb") as f:
+                self.data = tomllib.load(f)
+
+    def _get(self, *keys, default=None):
+        d = self.data
+        for k in keys:
+            if isinstance(d, dict):
+                d = d.get(k)
+            else:
+                return default
+        return d if d is not None else default
 
     @property
-    def user_id(self):
-        return self.data.get("id", "")
+    def enabled(self):
+        return self._get("image_display", "enabled", default=True)
 
     @property
-    def user_name(self):
-        return self.data.get("name", "")
+    def max_images(self):
+        return self._get("image_display", "max_images", default=12)
 
     @property
-    def user_position(self):
-        return self.data.get("position", "")
+    def allowed_extensions(self):
+        return self._get("image_display", "allowed_extensions",
+                         default=[".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"])
 
-    def get_api_key(self):
-        key = self.data.get("dp_apikey", "")
-        return key.strip() if key and key.strip() != "sk-" else ""
+    @property
+    def cache_dir(self):
+        return Path(self._get("cache", "dir", default="/tmp/dp_image_cache"))
 
-    def set_api_key(self, key):
-        self.data["dp_apikey"] = key
-        self._save()
+    @property
+    def timeout(self):
+        return self._get("image_search", "timeout_seconds", default=30)
 
-    def _save(self):
-        self.config_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.config_path, "w", encoding="utf-8") as f:
-            json.dump(self.data, f, ensure_ascii=False, indent=2)
+    @property
+    def user_agent(self):
+        return self._get("image_search", "user_agent", default="DP-Chat-ImageMiddleware/1.0")
 
+    @property
+    def parse_markdown_images(self):
+        return self._get("stream", "parse_markdown_images", default=True)
 
-class OpenApiConfig:
-    def __init__(self, config_path):
-        with open(config_path, "r", encoding="utf-8") as f:
-            self.raw = json.load(f)
-        self._parse()
+    @property
+    def parse_raw_urls(self):
+        return self._get("stream", "parse_raw_urls", default=True)
 
-    def _parse(self):
-        self.title = self.raw.get("info", {}).get("title", "")
-        servers = self.raw.get("servers", [])
-        if not servers:
-            raise ValueError("OpenAPI 配置缺少 servers")
-        self.base_url = servers[0].get("url", "").rstrip("/")
-        if not self.base_url:
-            raise ValueError("servers[0].url 为空")
-        self.paths = self.raw.get("paths", {})
-        if not self.paths:
-            raise ValueError("OpenAPI 配置缺少 paths")
-        self.auth_scheme = self._parse_auth()
-        self.endpoints = {}
-        for path, methods in self.paths.items():
-            for method, spec in methods.items():
-                if not isinstance(spec, dict):
-                    continue
-                key = (method.upper(), path)
-                self.endpoints[key] = self._parse_endpoint(spec)
-
-    def _parse_auth(self):
-        security = self.raw.get("security", [])
-        if not security:
-            return None
-        schemes = self.raw.get("components", {}).get("securitySchemes", {})
-        for sec_req in security:
-            for name in sec_req:
-                if name in schemes:
-                    scheme = schemes[name]
-                    return {
-                        "name": name,
-                        "type": scheme.get("type", ""),
-                        "scheme": scheme.get("scheme", ""),
-                        "bearerFormat": scheme.get("bearerFormat", ""),
-                    }
-        return None
-
-    def _parse_endpoint(self, spec):
-        operation_id = spec.get("operationId", "")
-        description = spec.get("description", "")
-        request_schema = {}
-        content = spec.get("requestBody", {}).get("content", {})
-        json_body = content.get("application/json", {})
-        if json_body:
-            request_schema = json_body.get("schema", {})
-        return {
-            "operationId": operation_id,
-            "description": description,
-            "requestSchema": request_schema,
-        }
-
-    def get_endpoint(self, method, path):
-        return self.endpoints.get((method.upper(), path))
-
-    def get_request_properties(self, method, path):
-        ep = self.get_endpoint(method, path)
-        if not ep:
-            return {}
-        return ep.get("requestSchema", {}).get("properties", {})
-
-    def get_required_fields(self, method, path):
-        ep = self.get_endpoint(method, path)
-        if not ep:
-            return []
-        return ep.get("requestSchema", {}).get("required", [])
-
-    def get_prop_default(self, method, path, prop_name, fallback=None):
-        props = self.get_request_properties(method, path)
-        return props.get(prop_name, {}).get("default", fallback)
-
-    def get_prop_enum(self, method, path, prop_name):
-        props = self.get_request_properties(method, path)
-        return props.get(prop_name, {}).get("enum", [])
-
-    def get_prop_min(self, method, path, prop_name):
-        props = self.get_request_properties(method, path)
-        return props.get(prop_name, {}).get("minimum")
-
-    def get_prop_max(self, method, path, prop_name):
-        props = self.get_request_properties(method, path)
-        return props.get(prop_name, {}).get("maximum")
+    @property
+    def debounce_ms(self):
+        return self._get("stream", "debounce_ms", default=500)
 
 
-class ApiWorker(QThread):
-    chunk_signal = pyqtSignal(str)
-    finished_signal = pyqtSignal(dict)
-    error_signal = pyqtSignal(str)
+class ImageFetcher(QThread):
+    fetched = pyqtSignal(str, QPixmap, str)
+    error = pyqtSignal(str, str)
 
-    def __init__(self, base_url, api_key, model, messages, temperature, max_tokens, endpoint_path):
+    def __init__(self, config):
         super().__init__()
-        self.base_url = base_url
-        self.api_key = api_key
-        self.model = model
-        self.messages = messages
-        self.temperature = temperature
-        self.max_tokens = max_tokens
-        self.endpoint_path = endpoint_path
+        self.config = config
+        self._urls = []
+        self._running = True
+
+    def set_urls(self, urls):
+        self._urls = list(urls)
 
     def run(self):
-        try:
-            url = f"{self.base_url}{self.endpoint_path}"
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}"
-            }
-            body = {
-                "model": self.model,
-                "messages": self.messages,
-                "stream": True,
-                "temperature": self.temperature,
-                "max_tokens": self.max_tokens,
-                "thinking": {"type": "disabled"},
-            }
-            response = requests.post(url, headers=headers, json=body, stream=True, timeout=120)
-            if response.status_code != 200:
-                self.error_signal.emit(f"HTTP {response.status_code}: {response.text[:500]}")
-                return
-            full_content = ""
-            for line in response.iter_lines(decode_unicode=True):
-                if line and line.startswith("data: "):
-                    data_str = line[6:]
-                    if data_str == "[DONE]":
-                        break
-                    try:
-                        data = json.loads(data_str)
-                        choices = data.get("choices", [])
-                        if choices:
-                            delta = choices[0].get("delta", {})
-                            content = delta.get("content", "")
-                            if content:
-                                full_content += content
-                                self.chunk_signal.emit(content)
-                    except json.JSONDecodeError:
-                        pass
-            self.finished_signal.emit({"content": full_content})
-        except requests.exceptions.Timeout:
-            self.error_signal.emit("请求超时，请检查网络")
-        except requests.exceptions.ConnectionError:
-            self.error_signal.emit("连接失败，请检查网络设置")
-        except Exception as e:
-            self.error_signal.emit(str(e))
+        for url in self._urls:
+            if not self._running:
+                break
+            try:
+                pixmap = self._download(url)
+                if pixmap:
+                    caption = os.path.basename(urlparse(url).path) or url
+                    self.fetched.emit(url, pixmap, caption)
+            except Exception as e:
+                self.error.emit(url, str(e))
+        self._urls = []
 
+    def _download(self, url):
+        cache_dir = self.config.cache_dir
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        url_hash = hashlib.md5(url.encode()).hexdigest()
+        ext = ".png"
+        path_lower = urlparse(url).path.lower()
+        for e in self.config.allowed_extensions:
+            if path_lower.endswith(e):
+                ext = e
+                break
+        cache_file = cache_dir / f"{url_hash}{ext}"
 
-class ApiKeyDialog(QDialog):
-    def __init__(self, current_key="", parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("设置 API Key")
-        self.setMinimumWidth(450)
-        layout = QFormLayout(self)
-        self.key_input = QLineEdit()
-        self.key_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.key_input.setText(current_key)
-        self.key_input.setPlaceholderText("输入你的 DeepSeek API Key")
-        layout.addRow("API Key:", self.key_input)
-        hint = QLabel(
-            '<a href="https://platform.deepseek.com/api_keys" style="color:#2e7d32;">'
-            '前往 platform.deepseek.com 获取 API Key</a>'
-        )
-        hint.setOpenExternalLinks(True)
-        layout.addRow("", hint)
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addRow(buttons)
+        if cache_file.exists() and cache_file.stat().st_size > 0:
+            return QPixmap(str(cache_file))
 
-    def get_api_key(self):
-        return self.key_input.text().strip()
-
-
-class ChatWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.worker = None
-        self.stream_buffer = ""
-        self.stream_anchor = None
-        self.messages = []
-        self.current_ask = ""
-        self.image_middleware = ChatImageMiddleware()
-        self.image_middleware.image_fetched.connect(self._on_image_ready)
-        self.init_config()
-        self.init_ui()
-
-    def init_config(self):
-        config_path = SCRIPT_DIR / ".." / "key_json" / "dp_config.json"
-        self.api_config = OpenApiConfig(str(config_path))
-        self.user_config = UserConfig(str(USER_CONFIG_PATH))
-        self.CHAT_METHOD = "POST"
-        self.CHAT_PATH = "/chat/completions"
-        self.base_url = self.api_config.base_url
-        self.default_model = self.api_config.get_prop_default(
-            self.CHAT_METHOD, self.CHAT_PATH, "model", "deepseek-v4-flash"
-        )
-        self.default_temperature = self.api_config.get_prop_default(
-            self.CHAT_METHOD, self.CHAT_PATH, "temperature", 1.0
-        )
-        self.default_max_tokens = self.api_config.get_prop_default(
-            self.CHAT_METHOD, self.CHAT_PATH, "max_tokens", 4096
-        )
-        self.available_models = self.api_config.get_prop_enum(
-            self.CHAT_METHOD, self.CHAT_PATH, "model"
-        )
-        self.temp_min = self.api_config.get_prop_min(self.CHAT_METHOD, self.CHAT_PATH, "temperature") or 0.0
-        self.temp_max = self.api_config.get_prop_max(self.CHAT_METHOD, self.CHAT_PATH, "temperature") or 2.0
-
-    def init_ui(self):
-        self.setWindowTitle(f"{self.api_config.title} 聊天助手")
-        self.setGeometry(120, 80, 960, 720)
-        central = QWidget()
-        self.setCentralWidget(central)
-        main_layout = QVBoxLayout(central)
-        main_layout.setSpacing(8)
-
-        controls_layout = QHBoxLayout()
-        controls_layout.setSpacing(10)
-        controls_layout.addWidget(QLabel("模型:"))
-        self.model_combo = QComboBox()
-        models = self.available_models if self.available_models else ["deepseek-v4-flash", "deepseek-v4-pro"]
-        self.model_combo.addItems(models)
-        idx = self.model_combo.findText(self.default_model)
-        if idx >= 0:
-            self.model_combo.setCurrentIndex(idx)
-        self.model_combo.setToolTip("选择模型：flash 为快速模型，pro 为推理模型")
-        controls_layout.addWidget(self.model_combo)
-        controls_layout.addSpacing(16)
-        controls_layout.addWidget(QLabel("温度:"))
-        self.temperature_spin = QDoubleSpinBox()
-        self.temperature_spin.setRange(self.temp_min, self.temp_max)
-        self.temperature_spin.setSingleStep(0.1)
-        self.temperature_spin.setValue(self.default_temperature)
-        self.temperature_spin.setToolTip("采样温度，越高越随机")
-        controls_layout.addWidget(self.temperature_spin)
-        controls_layout.addSpacing(16)
-        controls_layout.addWidget(QLabel("最大 Token:"))
-        self.max_tokens_spin = QSpinBox()
-        self.max_tokens_spin.setRange(1, 32768)
-        self.max_tokens_spin.setSingleStep(256)
-        self.max_tokens_spin.setValue(self.default_max_tokens)
-        self.max_tokens_spin.setToolTip("生成回复的最大 token 数")
-        controls_layout.addWidget(self.max_tokens_spin)
-        controls_layout.addStretch()
-        main_layout.addLayout(controls_layout)
-
-        self.chat_display = QTextBrowser()
-        self.chat_display.setReadOnly(True)
-        self.chat_display.setOpenExternalLinks(True)
-        self.chat_display.setStyleSheet(
-            "QTextEdit { background-color: #f5f5f5; border: 1px solid #ccc; "
-            "border-radius: 4px; padding: 8px; }"
-        )
-        self.chat_display.setFont(QFont("Microsoft YaHei", 12))
-        self.chat_display.anchorClicked.connect(self._on_link_clicked)
-        main_layout.addWidget(self.chat_display, stretch=1)
-
-        input_layout = QHBoxLayout()
-        input_layout.setSpacing(6)
-        self.input_field = QTextEdit()
-        self.input_field.setMaximumHeight(100)
-        self.input_field.setMinimumHeight(50)
-        self.input_field.setPlaceholderText("输入消息，按 Ctrl+Enter 发送...")
-        self.input_field.setFont(QFont("Microsoft YaHei", 12))
-        self.input_field.setStyleSheet(
-            "QTextEdit { border: 1px solid #aaa; border-radius: 4px; padding: 6px; }"
-        )
-        input_layout.addWidget(self.input_field, stretch=1)
-        btn_layout = QVBoxLayout()
-        btn_layout.setSpacing(4)
-        self.send_btn = QPushButton("发送")
-        self.send_btn.setMinimumHeight(28)
-        self.send_btn.setStyleSheet(
-            "QPushButton { background-color: #2e7d32; color: white; border: none; "
-            "border-radius: 4px; font-weight: bold; }"
-            "QPushButton:hover { background-color: #1b5e20; }"
-            "QPushButton:disabled { background-color: #aaa; }"
-        )
-        self.send_btn.clicked.connect(self.send_message)
-        btn_layout.addWidget(self.send_btn)
-        self.clear_btn = QPushButton("清屏")
-        self.clear_btn.setMinimumHeight(28)
-        self.clear_btn.clicked.connect(self.clear_chat)
-        btn_layout.addWidget(self.clear_btn)
-        input_layout.addLayout(btn_layout)
-        main_layout.addLayout(input_layout)
-
-        self.statusBar().showMessage("就绪 | 请先设置 API Key")
-        menubar = self.menuBar()
-        settings_menu = menubar.addMenu("设置")
-        apikey_action = settings_menu.addAction("设置 API Key")
-        apikey_action.triggered.connect(self.show_api_key_dialog)
-
-    def keyPressEvent(self, event):
-        if (
-            event.key() == Qt.Key.Key_Return
-            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
+        headers = {"User-Agent": self.config.user_agent}
+        resp = requests.get(url, headers=headers, timeout=self.config.timeout, stream=True)
+        if resp.status_code != 200:
+            return None
+        content_type = resp.headers.get("content-type", "")
+        if "image" not in content_type and not any(
+            url.lower().endswith(e) for e in self.config.allowed_extensions
         ):
-            if self.input_field.hasFocus():
-                self.send_message()
-                return
-        super().keyPressEvent(event)
+            return None
 
-    def show_api_key_dialog(self):
-        current_key = self.user_config.get_api_key()
-        dialog = ApiKeyDialog(current_key, self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            key = dialog.get_api_key()
-            if key:
-                self.user_config.set_api_key(key)
-                self.statusBar().showMessage("API Key 已保存")
+        data = resp.content
+        with open(cache_file, "wb") as f:
+            f.write(data)
+        return QPixmap(str(cache_file))
+
+    def stop(self):
+        self._running = False
+
+
+class ChatImageMiddleware(QObject):
+    image_urls_detected = pyqtSignal(list)
+    image_fetched = pyqtSignal(str, QPixmap, str)
+    image_error = pyqtSignal(str, str)
+
+    def __init__(self, config_path=None):
+        super().__init__()
+        self.config = ImageResearchConfig(config_path)
+
+        self._fetcher = ImageFetcher(self.config)
+        self._fetcher.fetched.connect(self._on_image_fetched)
+        self._fetcher.error.connect(self._on_image_error)
+
+        self._debounce_timer = QTimer()
+        self._debounce_timer.setSingleShot(True)
+        self._debounce_timer.timeout.connect(self._flush_pending)
+
+        self._pending_urls = set()
+        self._seen_urls = set()
+
+    def process_chunk(self, text):
+        if not self.config.enabled:
+            return []
+
+        urls = []
+        if self.config.parse_markdown_images:
+            for match in MARKDOWN_IMG_PAT.finditer(text):
+                urls.append((match.group(2), match.group(1)))
+
+        if self.config.parse_raw_urls:
+            for match in RAW_URL_PAT.finditer(text):
+                url = match.group(0).rstrip(".,;:!?)")
+                if IMAGE_EXT_PAT.search(url):
+                    known = [u for u, _ in urls]
+                    if url not in known:
+                        urls.append((url, ""))
+
+        new_urls = []
+        for url, caption in urls:
+            if url not in self._seen_urls:
+                self._seen_urls.add(url)
+                self._pending_urls.add(url)
+                new_urls.append(url)
+
+        if new_urls:
+            self.image_urls_detected.emit(new_urls)
+            if self.config.debounce_ms > 0:
+                self._debounce_timer.start(self.config.debounce_ms)
             else:
-                self.user_config.set_api_key("")
-                self.statusBar().showMessage("API Key 已清除")
+                self._flush_pending()
 
-    def get_api_key(self):
-        return self.user_config.get_api_key()
+        return new_urls
 
-    def send_message(self):
-        text = self.input_field.toPlainText().strip()
-        if not text:
+    def _flush_pending(self):
+        if not self._pending_urls:
             return
-        api_key = self.get_api_key()
-        if not api_key:
-            self.show_api_key_dialog()
-            api_key = self.get_api_key()
-            if not api_key:
-                return
-        if self.worker and self.worker.isRunning():
-            QMessageBox.information(self, "提示", "请等待上一个回复完成")
-            return
+        urls = list(self._pending_urls)
+        self._pending_urls.clear()
+        self._fetcher.set_urls(urls)
+        if not self._fetcher.isRunning():
+            self._fetcher.start()
+        else:
+            self._fetcher.set_urls(urls)
 
-        user_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.messages.append({"role": "user", "content": text})
-        self.current_ask = text
-        self.append_message("你", text, "#333333")
-        self._save_record(text, user_time)
-        self.input_field.clear()
+    def _on_image_fetched(self, url, pixmap, caption):
+        self.image_fetched.emit(url, pixmap, caption)
 
-        self.send_btn.setEnabled(False)
-        self.statusBar().showMessage("正在等待回复...")
+    def _on_image_error(self, url, err):
+        self.image_error.emit(url, err)
 
-        self.stream_buffer = ""
-        cursor = self.chat_display.textCursor()
-        cursor.movePosition(QTextCursor.MoveOperation.End)
-        cursor.insertBlock()
-        cursor.insertHtml('<b style="color:#2980b9;">DeepSeek: </b>')
-        self.stream_anchor = cursor.position()
-        self.chat_display.setTextCursor(cursor)
+    def reset(self):
+        self._seen_urls.clear()
+        self._pending_urls.clear()
+        self._debounce_timer.stop()
 
-        self.image_middleware.reset()
-
-        model = self.model_combo.currentText()
-        temperature = self.temperature_spin.value()
-        max_tokens = self.max_tokens_spin.value()
-        self.worker = ApiWorker(
-            self.base_url, api_key, model,
-            self.messages.copy(), temperature, max_tokens,
-            self.CHAT_PATH
-        )
-        self.worker.chunk_signal.connect(self.on_chunk)
-        self.worker.finished_signal.connect(self.on_finished)
-        self.worker.error_signal.connect(self.on_error)
-        self.worker.start()
-
-    def on_chunk(self, text):
-        self.stream_buffer += text
-        rendered = md_to_html(self.stream_buffer)
-        cursor = self.chat_display.textCursor()
-        cursor.setPosition(self.stream_anchor)
-        cursor.movePosition(QTextCursor.MoveOperation.End, QTextCursor.MoveMode.KeepAnchor)
-        cursor.removeSelectedText()
-        cursor.insertHtml(f'<span style="color:#1a5276;">{rendered}</span>')
-        self.chat_display.ensureCursorVisible()
-        self.image_middleware.process_chunk(text)
-
-    def on_finished(self, data):
-        content = data.get("content", "")
-        if content:
-            self.messages.append({"role": "assistant", "content": content})
-            resp_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            self._save_record(content, resp_time)
-        self.chat_display.append("")
-        self.send_btn.setEnabled(True)
-        self.statusBar().showMessage("就绪")
-        self.worker = None
-
-    def on_error(self, error_msg):
-        self.chat_display.append(
-            f'<span style="color:red;font-weight:bold;">[错误] {error_msg}</span>'
-        )
-        self.chat_display.append("")
-        if self.stream_buffer:
-            self.messages.append({"role": "assistant", "content": self.stream_buffer})
-        self.send_btn.setEnabled(True)
-        self.statusBar().showMessage("请求出错")
-        self.worker = None
-
-    def _on_image_ready(self, url, pixmap, caption):
-        pass
-
-    def _on_link_clicked(self, url):
-        QDesktopServices.openUrl(QUrl(url.toString()))
-
-    def append_message(self, sender, text, color):
-        rendered = md_to_html(text)
-        self.chat_display.append(
-            f'<b style="color:{color};">{sender}:</b><br>{rendered}'
-        )
-        self.chat_display.append("")
-
-    def clear_chat(self):
-        self.messages = []
-        self.stream_buffer = ""
-        self.current_ask = ""
-        self.chat_display.clear()
-        self.image_middleware.reset()
-        self.statusBar().showMessage("已清屏")
-
-    def _get_csv_path(self):
-        today = datetime.now().strftime("%y%m%d")
-        base = CSV_RECORD_DIR / f"{today}.csv"
-        if base.exists():
-            with open(base, "r", encoding="utf-8") as f:
-                line_count = sum(1 for _ in f)
-            if line_count >= MAX_RECORDS_PER_FILE:
-                idx = 1
-                while True:
-                    alt = CSV_RECORD_DIR / f"{today}_{idx}.csv"
-                    if not alt.exists():
-                        return alt
-                    with open(alt, "r", encoding="utf-8") as f2:
-                        if sum(1 for _ in f2) < MAX_RECORDS_PER_FILE:
-                            return alt
-                    idx += 1
-        return base
-
-    def _save_record(self, message, tk_time):
-        CSV_RECORD_DIR.mkdir(parents=True, exist_ok=True)
-        csv_path = self._get_csv_path()
-        file_exists = csv_path.exists()
-        model = self.model_combo.currentText()
-        row = {
-            "u_id": self.user_config.user_id,
-            "u_na": self.user_config.user_name,
-            "u_position": self.user_config.user_position,
-            "u_message": message,
-            "model_name": model,
-            "u_tkTime": tk_time,
-            "u_ask": self.current_ask,
-        }
-        with open(csv_path, "a", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
-            if not file_exists:
-                writer.writeheader()
-            writer.writerow(row)
-
-    def closeEvent(self, event):
-        if self.worker and self.worker.isRunning():
-            self.worker.terminate()
-            self.worker.wait()
-        self.image_middleware.shutdown()
-        event.accept()
-
-
-def main():
-    app = QApplication(sys.argv)
-    app.setStyle("Fusion")
-    try:
-        window = ChatWindow()
-        window.show()
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-    sys.exit(app.exec())
-
-
-if __name__ == "__main__":
-    main()
+    def shutdown(self):
+        self._debounce_timer.stop()
+        self._fetcher.stop()
+        self._fetcher.wait(3000)
