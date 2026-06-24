@@ -19,11 +19,20 @@ sys.path.insert(0, str(SRC_DIR))
 
 from rosa import ROSAAgent
 from rosa.rosa_decision_midware import ActionType
+from rosa.rosa_tts_midware import TTSMiddleware, TTSWorker
+from rosa.rosa_stt_midware import STTMiddleware, STTWorker
 
 COLOR_USER = "#16a085"
 COLOR_REPLY = "#e65100"
 COLOR_SYSTEM = "#1565c0"
 COLOR_RED = "#c62828"
+COLOR_ON = "#1b5e20"
+COLOR_OFF = "#757575"
+
+TTSP_ON = "语音输出: 开"
+TTSP_OFF = "语音输出: 关"
+STT_ON = "语音输入: 开"
+STT_OFF = "语音输入: 关"
 
 _MD_IMG_RE = re.compile(r'!\[([^\]]*)\]\(([^)\s]+)\)')
 _MD_LINK_RE = re.compile(r'(?<!\!)\[([^\]]+)\]\(([^)\s]+)\)')
@@ -450,6 +459,10 @@ class ROSAWindow(QMainWindow):
         self._stream_anchor = None
         self._messages = []
         self._detect_panel = None
+        self.tts = TTSMiddleware()
+        self.stt = STTMiddleware()
+        self._tts_worker = None
+        self._stt_worker = None
         self._init_agent()
         self.init_ui()
 
@@ -550,6 +563,25 @@ class ROSAWindow(QMainWindow):
         self.clear_btn.setMinimumHeight(28)
         self.clear_btn.clicked.connect(self.clear_chat)
         btn_layout.addWidget(self.clear_btn)
+
+        self.tts_btn = QPushButton(TTSP_ON)
+        self.tts_btn.setMinimumHeight(28)
+        self.tts_btn.setStyleSheet(
+            f"QPushButton {{ background-color: {COLOR_ON}; color: white; border: none; "
+            "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
+        )
+        self.tts_btn.clicked.connect(self._toggle_tts)
+        btn_layout.addWidget(self.tts_btn)
+
+        self.stt_btn = QPushButton(STT_OFF)
+        self.stt_btn.setMinimumHeight(28)
+        self.stt_btn.setStyleSheet(
+            f"QPushButton {{ background-color: {COLOR_OFF}; color: white; border: none; "
+            "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
+        )
+        self.stt_btn.clicked.connect(self._toggle_stt)
+        btn_layout.addWidget(self.stt_btn)
+
         input_layout.addLayout(btn_layout)
         chat_layout.addLayout(input_layout)
 
@@ -624,6 +656,95 @@ class ROSAWindow(QMainWindow):
         self.append_message("系统", "实时检测已停止", "#666")
         self.statusBar().showMessage("就绪")
 
+    def _toggle_tts(self):
+        self.tts.enabled = not self.tts.enabled
+        if self.tts.enabled:
+            self.tts_btn.setText(TTSP_ON)
+            self.tts_btn.setStyleSheet(
+                f"QPushButton {{ background-color: {COLOR_ON}; color: white; border: none; "
+                "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
+            )
+            if not self.tts.is_loaded:
+                try:
+                    self.tts.load_model()
+                    self.statusBar().showMessage("TTS 语音模型已加载")
+                except Exception as e:
+                    self.tts.enabled = False
+                    self.tts_btn.setText(TTSP_OFF)
+                    self.tts_btn.setStyleSheet(
+                        f"QPushButton {{ background-color: {COLOR_OFF}; color: white; border: none; "
+                        "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
+                    )
+                    self.statusBar().showMessage(f"TTS 加载失败: {e}")
+        else:
+            self.tts_btn.setText(TTSP_OFF)
+            self.tts_btn.setStyleSheet(
+                f"QPushButton {{ background-color: {COLOR_OFF}; color: white; border: none; "
+                "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
+            )
+            self.statusBar().showMessage("TTS 已关闭")
+
+    def _toggle_stt(self):
+        if self._stt_worker and self._stt_worker.isRunning():
+            self._stt_worker.stop()
+            self._stt_worker.wait(3000)
+            self._stt_worker = None
+            self.stt_btn.setText(STT_OFF)
+            self.stt_btn.setStyleSheet(
+                f"QPushButton {{ background-color: {COLOR_OFF}; color: white; border: none; "
+                "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
+            )
+            self.statusBar().showMessage("语音输入已关闭")
+            return
+
+        self.stt_btn.setText("加载中...")
+        self.stt_btn.setEnabled(False)
+        self._stt_worker = STTWorker(self.stt)
+        self._stt_worker.text_ready.connect(self._on_stt_text)
+        self._stt_worker.partial_ready.connect(lambda t: self.statusBar().showMessage(f"识别中: {t}"))
+        self._stt_worker.error.connect(self._on_stt_error)
+        self._stt_worker.status_changed.connect(self._on_stt_status)
+        self._stt_worker.start()
+
+    def _on_stt_text(self, text):
+        current = self.input_field.toPlainText().strip()
+        if current:
+            self.input_field.setPlainText(f"{current} {text}")
+        else:
+            self.input_field.setPlainText(text)
+
+    def _on_stt_status(self, running):
+        self.stt_btn.setEnabled(True)
+        if running:
+            self.stt_btn.setText(STT_ON)
+            self.stt_btn.setStyleSheet(
+                f"QPushButton {{ background-color: {COLOR_ON}; color: white; border: none; "
+                "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
+            )
+        else:
+            self.stt_btn.setText(STT_OFF)
+            self.stt_btn.setStyleSheet(
+                f"QPushButton {{ background-color: {COLOR_OFF}; color: white; border: none; "
+                "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
+            )
+
+    def _on_stt_error(self, msg):
+        self._stt_worker = None
+        self.stt_btn.setEnabled(True)
+        self.stt_btn.setText(STT_OFF)
+        self.stt_btn.setStyleSheet(
+            f"QPushButton {{ background-color: {COLOR_OFF}; color: white; border: none; "
+            "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
+        )
+        self.statusBar().showMessage(f"语音输入错误: {msg}")
+
+    def _speak_reply(self, text):
+        if self._tts_worker and self._tts_worker.isRunning():
+            self._tts_worker.terminate()
+            self._tts_worker.wait()
+        self._tts_worker = TTSWorker(self.tts, text)
+        self._tts_worker.start()
+
     def send_message(self):
         text = self.input_field.toPlainText().strip()
         if not text:
@@ -684,6 +805,7 @@ class ROSAWindow(QMainWindow):
             reply = res.get("reply", "")
             if reply:
                 self.append_message("ROSA", reply, COLOR_REPLY)
+                self._speak_reply(reply)
             else:
                 self._stream_chat(result.get("command", {}).get("raw_text", ""))
         elif action == "report_result":
@@ -792,6 +914,7 @@ class ROSAWindow(QMainWindow):
         self.chat_display.append("")
         self.send_btn.setEnabled(True)
         self.statusBar().showMessage("就绪")
+        self._speak_reply(content)
 
     def _on_stream_error(self, msg):
         self._stream_worker = None
@@ -841,6 +964,12 @@ class ROSAWindow(QMainWindow):
         if self._stream_worker and self._stream_worker.isRunning():
             self._stream_worker.terminate()
             self._stream_worker.wait()
+        if self._tts_worker and self._tts_worker.isRunning():
+            self._tts_worker.terminate()
+            self._tts_worker.wait()
+        if self._stt_worker and self._stt_worker.isRunning():
+            self._stt_worker.stop()
+            self._stt_worker.wait(3000)
         if self._detect_panel:
             self._detect_panel.shutdown()
         event.accept()
