@@ -63,7 +63,7 @@ sudo apt install ros-jazzy-velodyne-description
 ### 2. Clone and Install CHAMP Controller and Go2 Simulation Packages
 
 ```bash
-cd ~/ros2_ws/src
+cd ~/ros2_ws/yolo_src
 git clone https://github.com/khaledgabr77/unitree_go2_ros2
 ```
 
@@ -72,7 +72,7 @@ git clone https://github.com/khaledgabr77/unitree_go2_ros2
 ```bash
 cd ~/ros2_ws
 rosdep update
-rosdep install --from-paths src --ignore-src -r -y
+rosdep install --from-paths yolo_src --ignore-yolo_src -r -y
 ```
 
 ### 4. Build the Workspace

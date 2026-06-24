@@ -32,7 +32,7 @@ class ResumeTrainingTUI:
             'imgsz': 640,
             'device': 0,
             'workers': 8,
-            'project': './src/model/model_root',
+            'project': './yolo_src/model/model_root',
             'name': None,
         }
 
@@ -117,13 +117,13 @@ class ResumeTrainingTUI:
                     old_batch = old_args.get('batch', 16)
                     old_imgsz = old_args.get('imgsz', 640)
                     old_workers = old_args.get('workers', 8)
-                    old_project = old_args.get('project', './src/model/model_root')
+                    old_project = old_args.get('project', './yolo_src/model/model_root')
                 else:
-                    old_batch, old_imgsz, old_workers, old_project = 16, 640, 8, './src/model/model_root'
+                    old_batch, old_imgsz, old_workers, old_project = 16, 640, 8, './yolo_src/model/model_root'
             except:
-                old_batch, old_imgsz, old_workers, old_project = 16, 640, 8, './src/model/model_root'
+                old_batch, old_imgsz, old_workers, old_project = 16, 640, 8, './yolo_src/model/model_root'
         else:
-            old_batch, old_imgsz, old_workers, old_project = 16, 640, 8, './src/model/model_root'
+            old_batch, old_imgsz, old_workers, old_project = 16, 640, 8, './yolo_src/model/model_root'
 
         batch_input = Prompt.ask("批次大小 (batch)", default=str(old_batch))
         self.config['batch'] = int(batch_input) if batch_input.isdigit() else old_batch

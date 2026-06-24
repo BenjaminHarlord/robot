@@ -12,13 +12,13 @@ class YOLOTrainer:
 
     def __init__(self,
                  model_name: str = "yolo26n.pt",
-                 data_yaml: str = "./src/datasets/coco/yolosets/data.yaml",
+                 data_yaml: str = "./yolo_src/datasets/coco/yolosets/data.yaml",
                  epochs: int = 100,
                  batch: int = 16,
                  imgsz: int = 640,
                  device: int = 0,
                  workers: int = 8,
-                 project: str = "./src/model/",
+                 project: str = "./yolo_src/model/",
                  name: str = None):
         """
         初始化 YOLO 训练器

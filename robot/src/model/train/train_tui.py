@@ -35,13 +35,13 @@ class YOLOTrainingTUI:
     def __init__(self):
         self.config = {
             'model_name': 'yolo26n.pt',
-            'data_yaml': './src/datasets/coco/yolosets/data.yaml',
+            'data_yaml': './yolo_src/datasets/coco/yolosets/data.yaml',
             'epochs': 100,
             'batch': 16,
             'imgsz': 640,
             'device': 0,
             'workers': 8,
-            'project': './src/model/model_root',
+            'project': './yolo_src/model/model_root',
         }
         self.trainer = None
         self.training_thread = None

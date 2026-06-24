@@ -46,7 +46,7 @@ def resume_training():
     results = model.train(resume=True, epochs=total_epochs)
 
     # 方式2：如果不使用resume=True，直接指定模型和参数（需要手动继承数据）
-    # results = model.train(data='./src/datasets/coco/yolosets/data.yaml',
+    # results = model.train(data='./yolo_src/datasets/coco/yolosets/data.yaml',
     #                       epochs=total_epochs,
     #                       resume=True)
 

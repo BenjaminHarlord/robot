@@ -1,7 +1,7 @@
 task: detect
 mode: train
 model: yolo26s.pt
-data: /home/andre/dev_root/robot/robot/src/model/url_tool/ultralytics/ultralytics/cfg/datasets/coco.yaml
+data: /home/andre/dev_root/robot/robot/yolo_src/model/url_tool/ultralytics/ultralytics/cfg/datasets/coco.yaml
 epochs: 100
 time: null
 patience: 30
@@ -12,7 +12,7 @@ save_period: 10
 cache: false
 device: '0'
 workers: 4
-project: ./src/model/model_root
+project: ./yolo_src/model/model_root
 name: cocoYOLOv26s01
 exist_ok: true
 pretrained: true
@@ -107,4 +107,4 @@ auto_augment: null
 erasing: 0.4
 cfg: null
 tracker: botsort.yaml
-save_dir: /home/andre/dev_root/robot/src/model/url_tool/ultralytics/runs/detect/src/model/model_root/cocoYOLOv26s01
+save_dir: /home/andre/dev_root/robot/yolo_src/model/url_tool/ultralytics/runs/detect/yolo_src/model/model_root/cocoYOLOv26s01

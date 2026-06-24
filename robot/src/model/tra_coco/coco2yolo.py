@@ -5,7 +5,7 @@ import zipfile
 from pathlib import Path
 from ultralytics.data.converter import convert_coco
 
-ROOT = Path(__file__).resolve().parent.parent.parent  # src/
+ROOT = Path(__file__).resolve().parent.parent.parent  # yolo_src/
 sys.path.insert(0, str(ROOT / "model" / "url_tool" / "ultralytics"))
 
 COCO_ROOT = ROOT / "datasetss" / "coco" / "cocosets"
