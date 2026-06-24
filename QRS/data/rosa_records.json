@@ -2372,6 +2372,368 @@
       },
       "id": 72,
       "timestamp": "2026-06-24 16:10:50"
+    },
+    {
+      "type": "detection",
+      "detection": {
+        "objects": [
+          "person",
+          "chair"
+        ],
+        "confidences": [
+          0.9673,
+          0.7943
+        ],
+        "count": 2,
+        "summary": "person, chair",
+        "timestamp": "2026-06-24 16:27:27.101085"
+      },
+      "frame_path": "E:\\devRoot\\robot\\QRS\\images\\det_20260624_162727_148389.jpg",
+      "id": 73,
+      "timestamp": "2026-06-24 16:27:27"
+    },
+    {
+      "type": "interaction",
+      "user_input": "我周围有什么",
+      "command": {
+        "raw_text": "我周围有什么",
+        "cmd_type": "detect",
+        "intent": "检测触发: 有什么",
+        "target": "*",
+        "params": {},
+        "confidence": 0.95
+      },
+      "decision": {
+        "action": "do_detect",
+        "target": "*",
+        "params": {},
+        "reasoning": "规则: YOLO检测触发",
+        "priority": 8
+      },
+      "result": {
+        "action": "detect",
+        "detection": {
+          "objects": [
+            "person",
+            "chair"
+          ],
+          "confidences": [
+            0.9673,
+            0.7943
+          ],
+          "count": 2,
+          "summary": "person, chair",
+          "timestamp": "2026-06-24 16:27:27.101085"
+        },
+        "frame_saved": "E:\\devRoot\\robot\\QRS\\images\\det_20260624_162727_148389.jpg",
+        "message": "我看到有一个人和一把椅子。"
+      },
+      "id": 74,
+      "timestamp": "2026-06-24 16:27:28"
+    },
+    {
+      "type": "detection",
+      "detection": {
+        "objects": [
+          "person"
+        ],
+        "confidences": [
+          0.7584
+        ],
+        "count": 1,
+        "summary": "person",
+        "timestamp": "2026-06-24 16:27:48.741792"
+      },
+      "frame_path": "E:\\devRoot\\robot\\QRS\\images\\det_20260624_162748_749793.jpg",
+      "id": 75,
+      "timestamp": "2026-06-24 16:27:48"
+    },
+    {
+      "type": "interaction",
+      "user_input": "我周围有什么",
+      "command": {
+        "raw_text": "我周围有什么",
+        "cmd_type": "detect",
+        "intent": "检测触发: 有什么",
+        "target": "*",
+        "params": {},
+        "confidence": 0.95
+      },
+      "decision": {
+        "action": "do_detect",
+        "target": "*",
+        "params": {},
+        "reasoning": "规则: YOLO检测触发",
+        "priority": 8
+      },
+      "result": {
+        "action": "detect",
+        "detection": {
+          "objects": [
+            "person"
+          ],
+          "confidences": [
+            0.7584
+          ],
+          "count": 1,
+          "summary": "person",
+          "timestamp": "2026-06-24 16:27:48.741792"
+        },
+        "frame_saved": "E:\\devRoot\\robot\\QRS\\images\\det_20260624_162748_749793.jpg",
+        "message": "我看到一个人。"
+      },
+      "id": 76,
+      "timestamp": "2026-06-24 16:27:49"
+    },
+    {
+      "type": "interaction",
+      "user_input": "有几个人在我周围?",
+      "command": {
+        "raw_text": "有几个人在我周围?",
+        "cmd_type": "inquire",
+        "intent": "查询: 周围",
+        "target": "person",
+        "params": {},
+        "confidence": 0.92
+      },
+      "decision": {
+        "action": "check_presence",
+        "target": "person",
+        "params": {},
+        "reasoning": "规则: 存在性检查",
+        "priority": 7
+      },
+      "result": {
+        "action": "check",
+        "target": "person",
+        "exists": true,
+        "detection": {
+          "objects": [
+            "person"
+          ],
+          "confidences": [
+            0.7836
+          ],
+          "count": 1,
+          "summary": "person",
+          "timestamp": "2026-06-24 16:28:15.937525"
+        },
+        "message": "检测到有人。"
+      },
+      "id": 77,
+      "timestamp": "2026-06-24 16:28:16"
+    },
+    {
+      "type": "interaction",
+      "user_input": "jige",
+      "command": {
+        "raw_text": "jige",
+        "cmd_type": "unknown",
+        "intent": "无法识别的输入",
+        "target": "",
+        "params": {},
+        "confidence": 0.1
+      },
+      "decision": {
+        "action": "chat_reply",
+        "target": "user",
+        "params": {
+          "message": "抱歉，我没有理解您的指令。请重新描述您的需求。"
+        },
+        "reasoning": "LLM: 指令无法识别，需要请求用户澄清。",
+        "priority": 9
+      },
+      "result": {
+        "action": "chat",
+        "reply": "你好！我是ROSA机器人智能助手。看起来你发了一个词语，但我不太确定你指的是什么。能否告诉我“jige”具体是什么意思，或者你想让我帮你完成什么任务？比如检测环境、寻找某个物体，或者执行其他操作？我会尽力帮你！",
+        "message": "对话完成"
+      },
+      "id": 78,
+      "timestamp": "2026-06-24 16:28:26"
+    },
+    {
+      "type": "interaction",
+      "user_input": "有几个人在我周围？",
+      "command": {
+        "raw_text": "有几个人在我周围？",
+        "cmd_type": "inquire",
+        "intent": "查询: 周围",
+        "target": "person",
+        "params": {},
+        "confidence": 0.92
+      },
+      "decision": {
+        "action": "check_presence",
+        "target": "person",
+        "params": {},
+        "reasoning": "规则: 存在性检查",
+        "priority": 7
+      },
+      "result": {
+        "action": "check",
+        "target": "person",
+        "exists": true,
+        "detection": {
+          "objects": [
+            "person"
+          ],
+          "confidences": [
+            0.7204
+          ],
+          "count": 1,
+          "summary": "person",
+          "timestamp": "2026-06-24 16:28:37.137857"
+        },
+        "message": "我检测到有人在你周围。"
+      },
+      "id": 79,
+      "timestamp": "2026-06-24 16:28:38"
+    },
+    {
+      "type": "interaction",
+      "user_input": "有没有瓶子在我周围？",
+      "command": {
+        "raw_text": "有没有瓶子在我周围？",
+        "cmd_type": "inquire",
+        "intent": "查询: 周围",
+        "target": "bottle",
+        "params": {},
+        "confidence": 0.92
+      },
+      "decision": {
+        "action": "check_presence",
+        "target": "bottle",
+        "params": {},
+        "reasoning": "规则: 存在性检查",
+        "priority": 7
+      },
+      "result": {
+        "action": "check",
+        "target": "bottle",
+        "exists": true,
+        "detection": {
+          "objects": [
+            "chair",
+            "person",
+            "bottle"
+          ],
+          "confidences": [
+            0.9159,
+            0.8315,
+            0.6885
+          ],
+          "count": 3,
+          "summary": "chair, person, bottle",
+          "timestamp": "2026-06-24 16:29:10.281712"
+        },
+        "message": "我看到了一个瓶子。"
+      },
+      "id": 80,
+      "timestamp": "2026-06-24 16:29:11"
+    },
+    {
+      "type": "detection",
+      "detection": {
+        "objects": [
+          "chair",
+          "person",
+          "bottle"
+        ],
+        "confidences": [
+          0.876,
+          0.8479,
+          0.8341
+        ],
+        "count": 3,
+        "summary": "chair, person, bottle",
+        "timestamp": "2026-06-24 16:29:23.804814"
+      },
+      "frame_path": "E:\\devRoot\\robot\\QRS\\images\\det_20260624_162923_853658.jpg",
+      "id": 81,
+      "timestamp": "2026-06-24 16:29:23"
+    },
+    {
+      "type": "interaction",
+      "user_input": "我周围都有什么？",
+      "command": {
+        "raw_text": "我周围都有什么？",
+        "cmd_type": "detect",
+        "intent": "检测触发: 有什么",
+        "target": "*",
+        "params": {},
+        "confidence": 0.95
+      },
+      "decision": {
+        "action": "do_detect",
+        "target": "*",
+        "params": {},
+        "reasoning": "规则: YOLO检测触发",
+        "priority": 8
+      },
+      "result": {
+        "action": "detect",
+        "detection": {
+          "objects": [
+            "chair",
+            "person",
+            "bottle"
+          ],
+          "confidences": [
+            0.876,
+            0.8479,
+            0.8341
+          ],
+          "count": 3,
+          "summary": "chair, person, bottle",
+          "timestamp": "2026-06-24 16:29:23.804814"
+        },
+        "frame_saved": "E:\\devRoot\\robot\\QRS\\images\\det_20260624_162923_853658.jpg",
+        "message": "我检测到椅子、人和瓶子。"
+      },
+      "id": 82,
+      "timestamp": "2026-06-24 16:29:24"
+    },
+    {
+      "type": "interaction",
+      "user_input": "有几个瓶子？有几把椅子？",
+      "command": {
+        "raw_text": "有几个瓶子？有几把椅子？",
+        "cmd_type": "inquire",
+        "intent": "查询统计",
+        "target": "bottle",
+        "params": {},
+        "confidence": 0.9
+      },
+      "decision": {
+        "action": "check_presence",
+        "target": "bottle",
+        "params": {},
+        "reasoning": "规则: 存在性检查",
+        "priority": 7
+      },
+      "result": {
+        "action": "check",
+        "target": "bottle",
+        "exists": true,
+        "detection": {
+          "objects": [
+            "bottle",
+            "chair",
+            "person"
+          ],
+          "confidences": [
+            0.8811,
+            0.8751,
+            0.6715
+          ],
+          "count": 3,
+          "summary": "bottle, chair, person",
+          "timestamp": "2026-06-24 16:29:45.257615"
+        },
+        "message": "看到1个瓶子。没看到椅子。"
+      },
+      "id": 83,
+      "timestamp": "2026-06-24 16:29:46"
     }
   ]
 }

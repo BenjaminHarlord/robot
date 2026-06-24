@@ -129,67 +129,12 @@ class ROSAStreamWorker(QThread):
             self.error.emit(str(e))
 
 
-class ROSADetectWorker(QThread):
-    frame_ready = pyqtSignal(QPixmap, dict)
-    error = pyqtSignal(str)
-    finished = pyqtSignal()
-
-    def __init__(self, agent, model_path, confidence_threshold=0.5, device=0):
-        super().__init__()
-        self.agent = agent
-        self._model_path = model_path
-        self._confidence = confidence_threshold
-        self._device = device
-        self._running = True
-        self._latest_detection = None
-
-    @property
-    def latest_detection(self):
-        return self._latest_detection
-
-    def run(self):
-        try:
-            self.agent.perception.load_model(self._model_path)
-
-            cap = cv2.VideoCapture(self._device)
-            if not cap.isOpened():
-                self.error.emit(f"无法打开摄像头设备: {self._device}")
-                return
-
-            while self._running:
-                ret, frame = cap.read()
-                if not ret or frame is None:
-                    self.msleep(50)
-                    continue
-
-                detection = self.agent.perception.detect_frame(frame)
-                self._latest_detection = detection
-
-                rgb = cv2.cvtColor(detection.annotated_frame, cv2.COLOR_BGR2RGB)
-                h, w, ch = rgb.shape
-                qimg = QImage(rgb.data, w, h, ch * w, QImage.Format.Format_RGB888)
-                pixmap = QPixmap.fromImage(qimg).copy()
-
-                self.frame_ready.emit(pixmap, detection.to_dict())
-                self.msleep(33)
-
-            cap.release()
-        except Exception as e:
-            self.error.emit(f"检测异常: {str(e)}")
-        finally:
-            self.finished.emit()
-
-    def stop(self):
-        self._running = False
-
-
 class ROSADetectPanel(QWidget):
     stop_requested = pyqtSignal()
 
     def __init__(self, agent, parent=None):
         super().__init__(parent)
         self.agent = agent
-        self._worker = None
         self._last_info = None
         self._last_pixmap = None
         self._stopped = False
@@ -207,10 +152,6 @@ class ROSADetectPanel(QWidget):
 
     def get_latest_pixmap(self):
         return self._last_pixmap
-
-    @property
-    def detect_worker(self):
-        return self._worker
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
@@ -273,11 +214,20 @@ class ROSADetectPanel(QWidget):
         self._stopped = False
         self.model_label.setText(f"模型: {Path(model_path).name}")
 
+        if self.agent.perception.is_monitoring:
+            self.agent.perception.stop_monitoring()
+
         if not self.agent.perception.is_loaded or self.agent.perception.model_path != model_path:
             self.agent.perception.load_model(model_path)
-        if not self.agent.perception.is_monitoring:
-            self.agent.perception.start_monitoring(device=0)
 
+        self.agent.perception.start_monitoring(device=0)
+        self._poll_timer.start(33)
+        self.show()
+
+    def attach(self, model_path=""):
+        self._stopped = False
+        if model_path:
+            self.model_label.setText(f"模型: {Path(model_path).name}")
         self._poll_timer.start(33)
         self.show()
 
@@ -329,6 +279,89 @@ class ROSADetectPanel(QWidget):
         self._poll_timer.stop()
         self._emit_stop_once()
 
+class ApiKeyDialog(QDialog):
+    def __init__(self, current_key="", parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("设置 API Key")
+        self.setMinimumWidth(420)
+        layout = QFormLayout(self)
+        self._input = QLineEdit(current_key or "")
+        self._input.setEchoMode(QLineEdit.EchoMode.Password)
+        self._input.setPlaceholderText("输入 DeepSeek API Key...")
+        self._input.setMinimumWidth(320)
+        layout.addRow("API Key:", self._input)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)
+
+    def get_api_key(self):
+        return self._input.text().strip()
+
+
+class ModelSelectDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("选择 YOLO 模型")
+        self.setMinimumWidth(360)
+        self._model_path = ""
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel("QRS/models/ 中的模型文件:"))
+
+        self._combo = QComboBox()
+        QRS_MODELS = Path(__file__).resolve().parent.parent.parent.parent / "QRS" / "models"
+        pt_files = sorted(QRS_MODELS.glob("*.pt")) if QRS_MODELS.exists() else []
+        if pt_files:
+            for pt in pt_files:
+                self._combo.addItem(pt.name, str(pt))
+        else:
+            self._combo.addItem("(未找到 .pt 文件)", "")
+        layout.addWidget(self._combo)
+
+        self.path_label = QLabel("")
+        self.path_label.setStyleSheet("color: #666; font-size: 9pt;")
+        layout.addWidget(self.path_label)
+
+        self._combo.currentIndexChanged.connect(self._on_select)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self._on_ok)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+        if pt_files:
+            self._combo.setCurrentIndex(0)
+
+    def _on_select(self, index):
+        path = self._combo.currentData()
+        if path and Path(path).exists():
+            self._model_path = path
+            self.path_label.setText(str(path))
+        else:
+            self._model_path = ""
+            self.path_label.setText("")
+
+    def _on_ok(self):
+        if self._combo.currentData():
+            self._model_path = self._combo.currentData()
+            self.accept()
+        else:
+            browse = QFileDialog.getOpenFileName(
+                self, "选择 YOLO 模型文件", str(Path.home()),
+                "模型文件 (*.pt);;所有文件 (*.*)"
+            )
+            if browse[0]:
+                self._model_path = browse[0]
+                self.accept()
+
+    def get_model_path(self):
+        return self._model_path
+
 
 class ROSAWindow(QMainWindow):
     def __init__(self):
@@ -358,6 +391,8 @@ class ROSAWindow(QMainWindow):
         self._auto_load_model()
 
     def _auto_load_model(self):
+        if not self.agent or not hasattr(self.agent, "perception"):
+            return
         QRS_MODELS = Path(__file__).resolve().parent.parent.parent.parent / "QRS" / "models"
         for model_name in ["yolo26s.pt", "yolo26n.pt"]:
             path = QRS_MODELS / model_name
