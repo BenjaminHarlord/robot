@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox, QFormLayout, QMessageBox, QComboBox,
     QGroupBox, QSizePolicy, QFrame, QFileDialog,
 )
+from networkx.algorithms.bipartite.basic import color
 
 SRC_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SRC_DIR))
@@ -21,7 +22,7 @@ from rosa.rosa_decision_midware import ActionType
 
 COLOR_USER = "#16a085"
 COLOR_REPLY = "#e65100"
-COLOR_SYSTEM = "#ffffff"
+COLOR_SYSTEM = "#1565c0"
 COLOR_RED = "#c62828"
 
 _MD_IMG_RE = re.compile(r'!\[([^\]]*)\]\(([^)\s]+)\)')
@@ -347,47 +348,62 @@ class ApiKeyDialog(QDialog):
 
 
 class ModelSelectDialog(QDialog):
+    MODEL_OPTIONS = [
+        ("yolo26s.pt", "yolo26s (推荐)"),
+        ("yolo26n.pt", "yolo26n"),
+    ]
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("选择 YOLO 模型")
-        self.setMinimumWidth(520)
+        self.setMinimumWidth(420)
         self._model_path = ""
         self._init_ui()
+        self._auto_select_default()
+
+    def _auto_select_default(self):
+        for model_file, _ in self.MODEL_OPTIONS:
+            found = self._find_model(model_file)
+            if found:
+                self._model_path = str(found)
+                self.path_label.setText(str(found))
+                self.combo.setCurrentText(model_file)
+                return
+        self.path_label.setText("未找到默认模型 yolo26s.pt")
+
+    def _find_model(self, model_name):
+        search_paths = [
+            Path.cwd().parent / "QRS" / "models" / model_name,
+            Path(__file__).resolve().parent.parent.parent.parent / "QRS" / "models" / model_name,
+        ]
+        for p in search_paths:
+            if p.exists():
+                return p
+        return None
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
 
-        hint = QLabel("请选择 YOLO 模型文件 (.pt):")
+        hint = QLabel("请选择 YOLO 模型:")
         hint.setFont(QFont("Microsoft YaHei", 12))
         layout.addWidget(hint)
 
-        file_layout = QHBoxLayout()
-        self.path_label = QLabel("未选择文件")
+        combo_layout = QHBoxLayout()
+        combo_layout.addWidget(QLabel("模型:"))
+        self.combo = QComboBox()
+        self.combo.addItems([label for _, label in self.MODEL_OPTIONS])
+        self.combo.currentIndexChanged.connect(self._on_combo_changed)
+        combo_layout.addWidget(self.combo, stretch=1)
+        layout.addLayout(combo_layout)
+
+        self.path_label = QLabel("等待选择...")
         self.path_label.setStyleSheet(
             "QLabel { background-color: #f5f5f5; padding: 8px; border: 1px solid #ccc; "
             "border-radius: 4px; min-height: 24px; }"
         )
         self.path_label.setWordWrap(True)
-        file_layout.addWidget(self.path_label, stretch=1)
-
-        browse_btn = QPushButton("浏览...")
-        browse_btn.clicked.connect(self._browse)
-        file_layout.addWidget(browse_btn)
-        layout.addLayout(file_layout)
-
-        default_group = QGroupBox("快捷选择默认模型")
-        default_layout = QHBoxLayout()
-        for model_file, label in [
-            ("yolo26n.pt", "Nano"), ("yolo26s.pt", "Small"),
-            ("yolo26m.pt", "Medium"), ("yolo26l.pt", "Large"),
-            ("yolo26x.pt", "XLarge"),
-        ]:
-            btn = QPushButton(label)
-            btn.clicked.connect(lambda checked, m=model_file: self._select_default(m))
-            default_layout.addWidget(btn)
-        default_group.setLayout(default_layout)
-        layout.addWidget(default_group)
+        layout.addWidget(self.path_label)
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
@@ -396,37 +412,27 @@ class ModelSelectDialog(QDialog):
         btn_layout.addWidget(cancel_btn)
         ok_btn = QPushButton("确认选择")
         ok_btn.setStyleSheet(
-            f"QPushButton {{ background-color: {COLOR_SYSTEM}; color: white; border: none; "
+            "QPushButton { background-color: #000000; color: #ffffff; border: none; "
             "border-radius: 4px; font-weight: bold; }"
-            "QPushButton:hover { background-color: #0d47a1; }"
+            "QPushButton:hover { background-color: #333333; }"
         )
         ok_btn.clicked.connect(self._on_ok)
         btn_layout.addWidget(ok_btn)
         layout.addLayout(btn_layout)
 
-    def _browse(self):
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "选择 YOLO 模型文件", str(Path.home()), "PT 文件 (*.pt);;所有文件 (*)"
-        )
-        if file_path:
-            self._model_path = file_path
-            self.path_label.setText(file_path)
-
-    def _select_default(self, model_name):
-        search_paths = [
-            Path.cwd().parent / "QRS" / "models" / model_name,
-            Path(__file__).resolve().parent.parent.parent.parent / "QRS" / "models" / model_name,
-        ]
-        for p in search_paths:
-            if p.exists():
-                self._model_path = str(p)
-                self.path_label.setText(str(p))
-                return
-        self.path_label.setText(f"未找到: {model_name} (请手动浏览)")
+    def _on_combo_changed(self, idx):
+        if 0 <= idx < len(self.MODEL_OPTIONS):
+            model_file = self.MODEL_OPTIONS[idx][0]
+            found = self._find_model(model_file)
+            if found:
+                self._model_path = str(found)
+                self.path_label.setText(str(found))
+            else:
+                self.path_label.setText(f"未找到: {model_file}")
 
     def _on_ok(self):
         if not self._model_path or not Path(self._model_path).exists():
-            QMessageBox.warning(self, "警告", "请先选择一个有效的模型文件")
+            QMessageBox.warning(self, "警告", "未找到模型文件，请将 .pt 文件放入 QRS/models/")
             return
         self.accept()
 
@@ -452,6 +458,19 @@ class ROSAWindow(QMainWindow):
             self.agent = ROSAAgent()
         except Exception:
             self.agent = ROSAAgent.__new__(ROSAAgent)
+        self._auto_load_model()
+
+    def _auto_load_model(self):
+        QRS_MODELS = Path(__file__).resolve().parent.parent.parent.parent / "QRS" / "models"
+        for model_name in ["yolo26s.pt", "yolo26n.pt"]:
+            path = QRS_MODELS / model_name
+            if path.exists():
+                try:
+                    self.agent.perception.load_model(str(path))
+                    self.agent.config.set("perception", "model_path", value=str(path))
+                    return
+                except Exception:
+                    pass
 
     def init_ui(self):
         self.setWindowTitle("ROSA 智能体 — 机器人操作系统智能体")
@@ -482,8 +501,8 @@ class ROSAWindow(QMainWindow):
         self.chat_display.setReadOnly(True)
         self.chat_display.setOpenExternalLinks(True)
         self.chat_display.setStyleSheet(
-            "QTextEdit { background-color: #ffffff; color: #1a1a1a; "
-            "border: 1px solid #aaa; border-radius: 4px; padding: 8px; }"
+            "QTextEdit { background-color: #f5f5f5; border: 1px solid #ccc; "
+            "border-radius: 4px; padding: 8px; color: #7b1fa2; }"
         )
         self.chat_display.setFont(QFont("Microsoft YaHei", 12))
         chat_layout.addWidget(self.chat_display, stretch=1)
@@ -498,7 +517,7 @@ class ROSAWindow(QMainWindow):
         decision_layout.setContentsMargins(8, 2, 8, 2)
         self.decision_label = QLabel("决策: 等待输入...")
         self.decision_label.setFont(QFont("Microsoft YaHei", 9))
-        self.decision_label.setStyleSheet(f"color: {COLOR_SYSTEM};")
+        self.decision_label.setStyleSheet("color: #1b5e20;")
         decision_layout.addWidget(self.decision_label)
         chat_layout.addWidget(decision_frame)
 
@@ -805,10 +824,7 @@ class ROSAWindow(QMainWindow):
 
     def append_message(self, sender, text, color):
         rendered = md_to_html(text)
-        self.chat_display.append(
-            f'<b style="color:{color};">{sender}:</b><br>'
-            f'<span style="color:#1a1a1a;">{rendered}</span>'
-        )
+        self.chat_display.append(f'<b style="color:{color};">{sender}:</b><br>{rendered}')
         self.chat_display.append("")
 
     def clear_chat(self):

@@ -11,7 +11,7 @@
         "max_tokens": 4096
     },
     "perception": {
-        "model_path": "E:/devRoot/robot/QRS/models/best.pt",
+        "model_path": "E:\\devRoot\\robot\\QRS\\models\\yolo26s.pt",
         "confidence_threshold": 0.5,
         "device": 0,
         "save_frame_interval": 10
