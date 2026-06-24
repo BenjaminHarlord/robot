@@ -1,0 +1,24 @@
+{
+    "agent": {
+        "name": "ROSA Agent",
+        "version": "1.0.0"
+    },
+    "api": {
+        "base_url": "https://api.deepseek.com",
+        "chat_path": "/chat/completions",
+        "default_model": "deepseek-v4-flash",
+        "temperature": 1.0,
+        "max_tokens": 4096
+    },
+    "perception": {
+        "model_path": "E:/devRoot/robot/QRS/models/best.pt",
+        "confidence_threshold": 0.5,
+        "device": 0,
+        "save_frame_interval": 10
+    },
+    "mission": {
+        "description": "",
+        "target": "",
+        "actions": []
+    }
+}
