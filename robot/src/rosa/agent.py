@@ -6,6 +6,7 @@ from .rosa_llm_midware import LLMMiddleware
 from .rosa_perception_midware import PerceptionMiddleware
 from .rosa_command_midware import CommandMiddleware, CommandType
 from .rosa_decision_midware import DecisionMiddleware, ActionType
+from .rosa_language_midware import LanguageMiddleware
 
 
 class ROSAAgent:
@@ -14,7 +15,8 @@ class ROSAAgent:
         self.data = DataMiddleware()
         self.llm = LLMMiddleware()
         self.perception = PerceptionMiddleware()
-        self.command = CommandMiddleware()
+        self.language = LanguageMiddleware()
+        self.command = CommandMiddleware(language_middleware=self.language)
         self.decision = DecisionMiddleware()
 
         api_cfg = self.config.get_api_config()
@@ -36,6 +38,19 @@ class ROSAAgent:
     def _wire_middleware(self):
         self.command.set_llm(self.llm)
         self.decision.set_llm(self.llm)
+
+    def _llm_reply(self, system_prompt, context):
+        try:
+            return self.llm.chat_sync(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": context},
+                ],
+                temperature=0.7,
+                max_tokens=256,
+            )
+        except Exception:
+            return context
 
     def set_api_key(self, api_key):
         self.llm.configure(api_key=api_key)
@@ -93,27 +108,34 @@ class ROSAAgent:
     def _get_detection(self):
         if not self.perception.is_loaded:
             self.perception.load_model()
-
-        if self.perception.has_recent_detection:
-            return self.perception.get_latest_detection()
-
-        fresh = self.perception.wait_for_detection(timeout=1.5)
-        if fresh is not None:
-            return fresh
-
-        return self.perception.capture_single()
+        latest = self.perception.get_latest_detection()
+        if latest is not None:
+            return latest
+        return self.perception.wait_for_detection(timeout=3.0)
 
     def _exec_detect(self, decision, cmd):
         try:
             detection = self._get_detection()
+            if detection is None:
+                return {"action": "detect", "message": "暂无检测数据，请先启动实时检测"}
             frame_path = self.perception.save_frame(detection)
             self.data.insert_detection(detection.to_dict(), frame_path)
 
+            objects_cn = ", ".join(
+                self.language.to_chinese(obj) for obj in detection.objects
+            ) if self.language else detection.summary
+
+            context = f"用户问: \"{cmd.raw_text}\"。检测到 {detection.count} 个目标: {objects_cn}。"
+            reply = self._llm_reply(
+                "你是ROSA，一个机器人助手。根据检测结果用简短中文告知用户看到了什么。"
+                "只报告检测到的物品，不要编造、不要猜测。没检测到就说没看到。",
+                context,
+            )
             return {
                 "action": "detect",
                 "detection": detection.to_dict(),
                 "frame_saved": str(frame_path),
-                "message": f"检测到 {detection.count} 个目标: {detection.summary}",
+                "message": reply,
             }
         except Exception as e:
             return {"action": "detect", "error": str(e), "message": f"检测失败: {e}"}
@@ -121,17 +143,25 @@ class ROSAAgent:
     def _exec_count(self, decision, cmd):
         try:
             detection = self._get_detection()
+            if detection is None:
+                return {"action": "count", "message": "暂无检测数据，请先启动实时检测"}
 
             target = decision.target or cmd.target
             if target and target != "*":
                 count = sum(1 for obj in detection.objects if target.lower() in obj.lower())
-                msg = f"检测到 {count} 个 {target}"
+                target_cn = self.language.to_chinese(target) if self.language else target
             else:
                 count = detection.count
-                msg = f"共检测到 {count} 个目标: {detection.summary}"
+                target_cn = "物品"
 
+            context = f"用户问: \"{cmd.raw_text}\"。检测到 {count} 个{target_cn}。"
+            reply = self._llm_reply(
+                "你是ROSA，一个机器人助手。根据检测结果用简短中文告知用户看到了什么。"
+                "只报告检测到的物品，不要编造、不要猜测。没检测到就说没看到。",
+                context,
+            )
             return {"action": "count", "count": count, "target": target,
-                    "detection": detection.to_dict(), "message": msg}
+                    "detection": detection.to_dict(), "message": reply}
         except Exception as e:
             return {"action": "count", "error": str(e), "message": f"统计失败: {e}"}
 
@@ -142,11 +172,20 @@ class ROSAAgent:
                 return {"action": "check", "exists": False, "message": "请指定要查找的目标"}
 
             detection = self._get_detection()
-            exists = detection.has_object(target)
+            if detection is None:
+                return {"action": "check", "message": "暂无检测数据，请先启动实时检测"}
 
+            exists = detection.has_object(target)
+            target_cn = self.language.to_chinese(target) if self.language else target
+
+            context = f"用户问: \"{cmd.raw_text}\"。检测结果: {'发现了' if exists else '没有发现'}{target_cn}。"
+            reply = self._llm_reply(
+                "你是ROSA，一个机器人助手。根据检测结果用简短中文告知用户看到了什么。"
+                "只报告检测到的物品，不要编造、不要猜测。没检测到就说没看到。",
+                context,
+            )
             return {"action": "check", "target": target, "exists": exists,
-                    "detection": detection.to_dict(),
-                    "message": f"{'发现' if exists else '未发现'} {target}"}
+                    "detection": detection.to_dict(), "message": reply}
         except Exception as e:
             return {"action": "check", "error": str(e), "message": f"检查失败: {e}"}
 

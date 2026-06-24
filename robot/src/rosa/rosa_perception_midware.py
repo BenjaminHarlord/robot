@@ -1,3 +1,4 @@
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -23,6 +24,8 @@ DEFAULT_IMAGES_DIR = QRS_ROOT / "images"
 MODEL_VARIANTS = ["yolo26n.pt", "yolo26s.pt", "yolo11n.pt", "yolov8n.pt"]
 
 CONFIDENCE_THRESHOLD = 0.5
+
+MONITOR_FPS = 30
 
 
 class SingleFrameDetection:
@@ -59,6 +62,15 @@ class PerceptionMiddleware:
         self._models_dir = Path(models_dir) if models_dir else DEFAULT_MODELS_DIR
         self._model = None
         self._last_detection = None
+        self._detection_lock = threading.Lock()
+
+        self._monitor_thread = None
+        self._monitor_running = False
+        self._monitor_device = 0
+        self._monitor_frame_count = 0
+        self._monitor_save_interval = MONITOR_FPS * 5
+        self._monitor_on_frame = None
+        self._monitor_on_detect = None
 
     @property
     def model(self):
@@ -80,6 +92,10 @@ class PerceptionMiddleware:
     def images_dir(self):
         self._images_dir.mkdir(parents=True, exist_ok=True)
         return self._images_dir
+
+    @property
+    def is_monitoring(self):
+        return self._monitor_running
 
     def load_model(self, model_path=None):
         if model_path:
@@ -104,6 +120,70 @@ class PerceptionMiddleware:
                 if candidate.exists():
                     return candidate
         return None
+
+    def start_monitoring(self, device=0, save_interval=None,
+                         on_frame=None, on_detect=None):
+        if not self.is_loaded:
+            self.load_model()
+        if self._monitor_running:
+            return
+
+        self._monitor_device = device
+        if save_interval is not None:
+            self._monitor_save_interval = save_interval
+        self._monitor_on_frame = on_frame
+        self._monitor_on_detect = on_detect
+        self._monitor_running = True
+        self._monitor_thread = threading.Thread(
+            target=self._monitor_loop, name="perception-monitor", daemon=True
+        )
+        self._monitor_thread.start()
+
+    def stop_monitoring(self):
+        self._monitor_running = False
+        if self._monitor_thread and self._monitor_thread.is_alive():
+            self._monitor_thread.join(timeout=3.0)
+        self._monitor_thread = None
+
+    def _monitor_loop(self):
+        cap = cv2.VideoCapture(self._monitor_device)
+        if not cap.isOpened():
+            self._monitor_running = False
+            return
+
+        frame_interval = 1.0 / MONITOR_FPS
+        try:
+            while self._monitor_running:
+                loop_start = time.time()
+
+                ret, frame = cap.read()
+                if not ret or frame is None:
+                    time.sleep(0.01)
+                    continue
+
+                detection = self._run_detection(frame)
+
+                if self._monitor_on_frame:
+                    try:
+                        self._monitor_on_frame(frame, detection)
+                    except Exception:
+                        pass
+
+                if self._monitor_on_detect and detection.count > 0:
+                    try:
+                        self._monitor_on_detect(detection)
+                    except Exception:
+                        pass
+
+                self._monitor_frame_count += 1
+
+                elapsed = time.time() - loop_start
+                sleep_time = frame_interval - elapsed
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+        finally:
+            cap.release()
+            self._monitor_running = False
 
     def detect_image(self, image_path):
         if not self.is_loaded:
@@ -132,17 +212,6 @@ class PerceptionMiddleware:
         finally:
             cap.release()
 
-    def capture_multiple(self, device=0, num_frames=5, interval_sec=0.5):
-        results = []
-        for i in range(num_frames):
-            try:
-                results.append(self.capture_single(device))
-            except RuntimeError:
-                break
-            if i < num_frames - 1:
-                time.sleep(interval_sec)
-        return results
-
     def _run_detection(self, frame):
         results = self._model(frame, verbose=False)
         result = results[0]
@@ -162,42 +231,35 @@ class PerceptionMiddleware:
         annotated = result.plot()
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         detection = SingleFrameDetection(objects, confidences, annotated, ts)
-        self._last_detection = detection
+        with self._detection_lock:
+            self._last_detection = detection
         return detection
 
     def get_latest_detection(self):
-        return self._last_detection
+        with self._detection_lock:
+            return self._last_detection
 
     @property
     def has_recent_detection(self):
-        if self._last_detection is None:
+        latest = self.get_latest_detection()
+        if latest is None:
             return False
-        elapsed = (datetime.now() - datetime.strptime(
-            self._last_detection.timestamp.split(".")[0], "%Y-%m-%d %H:%M:%S"
-        )).total_seconds()
-        return elapsed < 2.0
+        try:
+            elapsed = (datetime.now() - datetime.strptime(
+                latest.timestamp.split(".")[0], "%Y-%m-%d %H:%M:%S"
+            )).total_seconds()
+            return elapsed < 2.0
+        except (ValueError, IndexError):
+            return False
 
     def wait_for_detection(self, timeout=3.0):
         start = time.time()
         while time.time() - start < timeout:
-            if self._last_detection is not None:
-                return self._last_detection
+            latest = self.get_latest_detection()
+            if latest is not None:
+                return latest
             time.sleep(0.1)
         return None
-
-    def find_object(self, target_name):
-        detection = self.capture_single()
-        return detection.has_object(target_name)
-
-    def count_objects(self, target_name=None):
-        detection = self.capture_single()
-        if target_name:
-            return sum(1 for obj in detection.objects if target_name.lower() in obj.lower())
-        return detection.count
-
-    def list_detected(self):
-        detection = self.capture_single()
-        return detection.objects
 
     def save_frame(self, detection, prefix="det"):
         self.images_dir
@@ -209,6 +271,6 @@ class PerceptionMiddleware:
 
     def __repr__(self):
         return (
-            f"<PerceptionMiddleware loaded={self.is_loaded} "
+            f"<PerceptionMiddleware loaded={self.is_loaded} monitoring={self._monitor_running} "
             f"model={Path(self._model_path).name if self._model_path else 'None'}>"
         )

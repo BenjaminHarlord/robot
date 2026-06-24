@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 import cv2
-from PyQt6.QtCore import Qt, QEvent, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QEvent, QThread, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont, QTextCursor, QImage, QPixmap
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -19,8 +19,9 @@ sys.path.insert(0, str(SRC_DIR))
 
 from rosa import ROSAAgent
 from rosa.rosa_decision_midware import ActionType
-from rosa.rosa_tts_midware import TTSMiddleware, TTSWorker
+from rosa.rosa_tts_midware import TTSMiddleware, TTSWorker, TTSLoadWorker
 from rosa.rosa_stt_midware import STTMiddleware, STTWorker
+from rosa.rosa_model_midware import ModelMiddleware
 
 COLOR_USER = "#16a085"
 COLOR_REPLY = "#e65100"
@@ -192,12 +193,14 @@ class ROSADetectPanel(QWidget):
         self._last_info = None
         self._last_pixmap = None
         self._stopped = False
+        self._poll_timer = QTimer(self)
+        self._poll_timer.timeout.connect(self._poll_detection)
         self.setMinimumWidth(280)
         self.setMaximumWidth(420)
         self._init_ui()
 
     def is_running(self):
-        return self._worker is not None and self._worker.isRunning()
+        return self.agent.perception.is_monitoring
 
     def get_latest_info(self):
         return self._last_info
@@ -269,52 +272,50 @@ class ROSADetectPanel(QWidget):
     def start(self, model_path):
         self._stopped = False
         self.model_label.setText(f"模型: {Path(model_path).name}")
+
+        if not self.agent.perception.is_loaded or self.agent.perception.model_path != model_path:
+            self.agent.perception.load_model(model_path)
+        if not self.agent.perception.is_monitoring:
+            self.agent.perception.start_monitoring(device=0)
+
+        self._poll_timer.start(33)
         self.show()
 
-        self._worker = ROSADetectWorker(
-            self.agent,
-            model_path=model_path,
-            confidence_threshold=self.agent.config.get(
-                "perception", "confidence_threshold", default=0.5
-            ),
-        )
-        self._worker.frame_ready.connect(self._on_frame)
-        self._worker.error.connect(self._on_error)
-        self._worker.finished.connect(self._on_finished)
-        self._worker.start()
-
-    def _on_frame(self, pixmap, info):
-        self._last_pixmap = pixmap
+    def _poll_detection(self):
+        detection = self.agent.perception.get_latest_detection()
+        if detection is None:
+            return
+        info = detection.to_dict()
         self._last_info = info
 
-        pw = self.video_label.width()
-        ph = self.video_label.height()
-        if pw > 10 and ph > 10:
-            scaled = pixmap.scaled(
-                pw, ph, Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-        else:
-            scaled = pixmap.scaled(
-                280, 200, Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-        self.video_label.setPixmap(scaled)
+        if detection.annotated_frame is not None:
+            rgb = cv2.cvtColor(detection.annotated_frame, cv2.COLOR_BGR2RGB)
+            h, w, ch = rgb.shape
+            qimg = QImage(rgb.data, w, h, ch * w, QImage.Format.Format_RGB888)
+            pixmap = QPixmap.fromImage(qimg).copy()
+            self._last_pixmap = pixmap
+
+            pw = self.video_label.width()
+            ph = self.video_label.height()
+            if pw > 10 and ph > 10:
+                scaled = pixmap.scaled(
+                    pw, ph, Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            else:
+                scaled = pixmap.scaled(
+                    280, 200, Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            self.video_label.setPixmap(scaled)
+
         self.info_label.setText(f"检测目标: {info.get('summary', '')}")
         self.count_label.setText(f"数量: {info.get('count', 0)}")
 
-    def _on_error(self, msg):
-        self.video_label.setText(f"错误: {msg}")
-        self.info_label.setText("检测出错，请重试")
-
-    def _on_finished(self):
-        self.video_label.setText("检测已停止")
-        self._emit_stop_once()
-
     def _on_stop(self):
-        if self._worker and self._worker.isRunning():
-            self._worker.stop()
-            self._worker.wait(3000)
+        self.agent.perception.stop_monitoring()
+        self._poll_timer.stop()
+        self.video_label.setText("检测已停止")
         self._emit_stop_once()
 
     def _emit_stop_once(self):
@@ -323,130 +324,10 @@ class ROSADetectPanel(QWidget):
             self.stop_requested.emit()
 
     def shutdown(self):
-        if self._worker and self._worker.isRunning():
-            self._worker.stop()
-            self._worker.wait(3000)
-
-
-class ApiKeyDialog(QDialog):
-    def __init__(self, current_key="", parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("设置 API Key")
-        self.setMinimumWidth(450)
-        layout = QFormLayout(self)
-        self.key_input = QLineEdit()
-        self.key_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.key_input.setText(current_key)
-        self.key_input.setPlaceholderText("输入你的 DeepSeek API Key")
-        layout.addRow("API Key:", self.key_input)
-        hint = QLabel(
-            f'<a href="https://platform.deepseek.com/api_keys" style="color:{COLOR_SYSTEM};">'
-            '前往 platform.deepseek.com 获取 API Key</a>'
-        )
-        hint.setOpenExternalLinks(True)
-        layout.addRow("", hint)
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addRow(buttons)
-
-    def get_api_key(self):
-        return self.key_input.text().strip()
-
-
-class ModelSelectDialog(QDialog):
-    MODEL_OPTIONS = [
-        ("yolo26s.pt", "yolo26s (推荐)"),
-        ("yolo26n.pt", "yolo26n"),
-    ]
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("选择 YOLO 模型")
-        self.setMinimumWidth(420)
-        self._model_path = ""
-        self._init_ui()
-        self._auto_select_default()
-
-    def _auto_select_default(self):
-        for model_file, _ in self.MODEL_OPTIONS:
-            found = self._find_model(model_file)
-            if found:
-                self._model_path = str(found)
-                self.path_label.setText(str(found))
-                self.combo.setCurrentText(model_file)
-                return
-        self.path_label.setText("未找到默认模型 yolo26s.pt")
-
-    def _find_model(self, model_name):
-        search_paths = [
-            Path.cwd().parent / "QRS" / "models" / model_name,
-            Path(__file__).resolve().parent.parent.parent.parent / "QRS" / "models" / model_name,
-        ]
-        for p in search_paths:
-            if p.exists():
-                return p
-        return None
-
-    def _init_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setSpacing(12)
-
-        hint = QLabel("请选择 YOLO 模型:")
-        hint.setFont(QFont("Microsoft YaHei", 12))
-        layout.addWidget(hint)
-
-        combo_layout = QHBoxLayout()
-        combo_layout.addWidget(QLabel("模型:"))
-        self.combo = QComboBox()
-        self.combo.addItems([label for _, label in self.MODEL_OPTIONS])
-        self.combo.currentIndexChanged.connect(self._on_combo_changed)
-        combo_layout.addWidget(self.combo, stretch=1)
-        layout.addLayout(combo_layout)
-
-        self.path_label = QLabel("等待选择...")
-        self.path_label.setStyleSheet(
-            "QLabel { background-color: #f5f5f5; padding: 8px; border: 1px solid #ccc; "
-            "border-radius: 4px; min-height: 24px; }"
-        )
-        self.path_label.setWordWrap(True)
-        layout.addWidget(self.path_label)
-
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch()
-        cancel_btn = QPushButton("取消")
-        cancel_btn.clicked.connect(self.reject)
-        btn_layout.addWidget(cancel_btn)
-        ok_btn = QPushButton("确认选择")
-        ok_btn.setStyleSheet(
-            "QPushButton { background-color: #000000; color: #ffffff; border: none; "
-            "border-radius: 4px; font-weight: bold; }"
-            "QPushButton:hover { background-color: #333333; }"
-        )
-        ok_btn.clicked.connect(self._on_ok)
-        btn_layout.addWidget(ok_btn)
-        layout.addLayout(btn_layout)
-
-    def _on_combo_changed(self, idx):
-        if 0 <= idx < len(self.MODEL_OPTIONS):
-            model_file = self.MODEL_OPTIONS[idx][0]
-            found = self._find_model(model_file)
-            if found:
-                self._model_path = str(found)
-                self.path_label.setText(str(found))
-            else:
-                self.path_label.setText(f"未找到: {model_file}")
-
-    def _on_ok(self):
-        if not self._model_path or not Path(self._model_path).exists():
-            QMessageBox.warning(self, "警告", "未找到模型文件，请将 .pt 文件放入 QRS/models/")
-            return
-        self.accept()
-
-    def get_model_path(self):
-        return self._model_path
+        if self.agent.perception.is_monitoring:
+            self.agent.perception.stop_monitoring()
+        self._poll_timer.stop()
+        self._emit_stop_once()
 
 
 class ROSAWindow(QMainWindow):
@@ -459,12 +340,15 @@ class ROSAWindow(QMainWindow):
         self._stream_anchor = None
         self._messages = []
         self._detect_panel = None
+        self.models = ModelMiddleware()
         self.tts = TTSMiddleware()
         self.stt = STTMiddleware()
         self._tts_worker = None
+        self._tts_load_worker = None
         self._stt_worker = None
         self._init_agent()
         self.init_ui()
+        self._check_deps()
 
     def _init_agent(self):
         try:
@@ -484,6 +368,19 @@ class ROSAWindow(QMainWindow):
                     return
                 except Exception:
                     pass
+
+    def _check_deps(self):
+        missing = []
+        if not self.models.check_pyaudio():
+            missing.append("pyaudio (语音)")
+        if not self.models.check_piper():
+            missing.append("piper-tts (语音输出)")
+        if not self.models.check_vosk():
+            missing.append("vosk (语音输入)")
+        if missing:
+            self.statusBar().showMessage(
+                f"提示: 缺少依赖包 — {', '.join(missing)}"
+            )
 
     def init_ui(self):
         self.setWindowTitle("ROSA 智能体 — 机器人操作系统智能体")
@@ -665,17 +562,12 @@ class ROSAWindow(QMainWindow):
                 "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
             )
             if not self.tts.is_loaded:
-                try:
-                    self.tts.load_model()
-                    self.statusBar().showMessage("TTS 语音模型已加载")
-                except Exception as e:
-                    self.tts.enabled = False
-                    self.tts_btn.setText(TTSP_OFF)
-                    self.tts_btn.setStyleSheet(
-                        f"QPushButton {{ background-color: {COLOR_OFF}; color: white; border: none; "
-                        "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
-                    )
-                    self.statusBar().showMessage(f"TTS 加载失败: {e}")
+                self.tts_btn.setText("加载中...")
+                self.tts_btn.setEnabled(False)
+                self._tts_load_worker = TTSLoadWorker(self.tts)
+                self._tts_load_worker.loaded.connect(self._on_tts_loaded)
+                self._tts_load_worker.error.connect(self._on_tts_load_error)
+                self._tts_load_worker.start()
         else:
             self.tts_btn.setText(TTSP_OFF)
             self.tts_btn.setStyleSheet(
@@ -683,6 +575,28 @@ class ROSAWindow(QMainWindow):
                 "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
             )
             self.statusBar().showMessage("TTS 已关闭")
+
+    def _on_tts_loaded(self, model_path):
+        self._tts_load_worker = None
+        self.tts_btn.setEnabled(True)
+        self.tts_btn.setText(TTSP_ON)
+        self.tts_btn.setStyleSheet(
+            f"QPushButton {{ background-color: {COLOR_ON}; color: white; border: none; "
+            "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
+        )
+        self.statusBar().showMessage(f"TTS 模型已加载: {Path(model_path).name}" if model_path else "TTS 模型已加载")
+
+    def _on_tts_load_error(self, msg):
+        self._tts_load_worker = None
+        self.tts.enabled = False
+        self.tts_btn.setEnabled(True)
+        self.tts_btn.setText(TTSP_OFF)
+        self.tts_btn.setStyleSheet(
+            f"QPushButton {{ background-color: {COLOR_OFF}; color: white; border: none; "
+            "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
+        )
+        QMessageBox.warning(self, "语音输出不可用", f"TTS 模型加载失败:\n{msg}")
+        self.statusBar().showMessage("TTS 加载失败")
 
     def _toggle_stt(self):
         if self._stt_worker and self._stt_worker.isRunning():
@@ -736,13 +650,17 @@ class ROSAWindow(QMainWindow):
             f"QPushButton {{ background-color: {COLOR_OFF}; color: white; border: none; "
             "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
         )
-        self.statusBar().showMessage(f"语音输入错误: {msg}")
+        QMessageBox.warning(self, "语音输入不可用", msg)
+        self.statusBar().showMessage(f"语音输入错误: {msg.split(chr(10))[0]}")
 
     def _speak_reply(self, text):
         if self._tts_worker and self._tts_worker.isRunning():
             self._tts_worker.terminate()
             self._tts_worker.wait()
         self._tts_worker = TTSWorker(self.tts, text)
+        self._tts_worker.error.connect(
+            lambda e: self.statusBar().showMessage(f"TTS 播放失败: {e[:80]}")
+        )
         self._tts_worker.start()
 
     def send_message(self):
@@ -824,9 +742,9 @@ class ROSAWindow(QMainWindow):
         if res.get("error"):
             if self._detect_panel and self._detect_panel.is_running():
                 info = self._detect_panel.get_latest_info()
-                worker = self._detect_panel.detect_worker
-                if info and worker and worker.latest_detection:
-                    frame_path = self.agent.perception.save_frame(worker.latest_detection)
+                detection = self.agent.perception.get_latest_detection()
+                if info and detection:
+                    frame_path = self.agent.perception.save_frame(detection)
                     self.agent.data.insert_detection(info, frame_path)
                     self._handle_detect_info(info, frame_path)
                     return
@@ -967,6 +885,9 @@ class ROSAWindow(QMainWindow):
         if self._tts_worker and self._tts_worker.isRunning():
             self._tts_worker.terminate()
             self._tts_worker.wait()
+        if self._tts_load_worker and self._tts_load_worker.isRunning():
+            self._tts_load_worker.terminate()
+            self._tts_load_worker.wait()
         if self._stt_worker and self._stt_worker.isRunning():
             self._stt_worker.stop()
             self._stt_worker.wait(3000)

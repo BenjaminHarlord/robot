@@ -72,11 +72,15 @@ JSON输出格式:
 
 
 class CommandMiddleware:
-    def __init__(self, llm_middleware=None):
+    def __init__(self, llm_middleware=None, language_middleware=None):
         self._llm = llm_middleware
+        self._language = language_middleware
 
     def set_llm(self, llm_middleware):
         self._llm = llm_middleware
+
+    def set_language(self, language_middleware):
+        self._language = language_middleware
 
     def parse(self, text):
         text = text.strip()
@@ -98,8 +102,8 @@ class CommandMiddleware:
     def _rule_parse(self, text):
         text_lower = text.lower()
 
-        detect_keywords = ["看看", "识别", "检测", "有什么", "看到什么", "扫一扫", "扫描"]
-        inquire_keywords = ["几个", "多少", "统计", "数一数", "有没有", "是否", "在吗", "存在"]
+        detect_keywords = ["看看", "识别", "检测", "有什么", "看到什么", "扫一扫", "扫描", "周围", "环境"]
+        inquire_keywords = ["几", "几个", "多少", "统计", "数一数", "有没有", "是否", "在吗", "存在"]
 
         target = self._extract_target(text)
 
@@ -120,12 +124,21 @@ class CommandMiddleware:
             if iq in text_lower:
                 return ParsedCommand(
                     raw_text=text, cmd_type=CommandType.INQUIRE,
-                    intent="查询统计", target=target, confidence=0.85,
+                    intent="查询统计", target=target, confidence=0.90,
                 )
 
         return None
 
     def _extract_target(self, text):
+        if self._language and self._language.all_chinese_labels():
+            chinese = sorted(self._language.all_chinese_labels(), key=len, reverse=True)
+            for label in chinese:
+                if label in text:
+                    return self._language.to_english(label)
+            english = sorted(self._language.all_english_labels(), key=len, reverse=True)
+            for label in english:
+                if label in text.lower():
+                    return label
         targets = ["人", "person", "车", "car", "猫", "cat", "狗", "dog",
                     "杯子", "cup", "瓶子", "bottle", "手机", "cell phone",
                     "电脑", "laptop", "椅子", "chair", "桌子", "table",

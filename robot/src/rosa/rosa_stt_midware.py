@@ -1,3 +1,4 @@
+import sys as _sys
 import threading
 from pathlib import Path
 
@@ -5,6 +6,24 @@ from PyQt6.QtCore import QThread, pyqtSignal
 
 QRS_ROOT = Path(__file__).resolve().parent.parent.parent.parent / "QRS"
 DEFAULT_VOSK_DIR = QRS_ROOT / "vosk_models"
+
+_VOSK_PYTHON_DIR = Path(__file__).resolve().parent.parent / "vosk" / "python"
+if str(_VOSK_PYTHON_DIR) not in _sys.path:
+    _sys.path.insert(0, str(_VOSK_PYTHON_DIR))
+
+try:
+    import pyaudio as _stt_pyaudio
+    HAS_STT_PYAUDIO = True
+except ImportError:
+    _stt_pyaudio = None
+    HAS_STT_PYAUDIO = False
+
+try:
+    import vosk as _stt_vosk
+    HAS_STT_VOSK = True
+except ImportError:
+    _stt_vosk = None
+    HAS_STT_VOSK = False
 
 
 class STTMiddleware:
@@ -39,6 +58,10 @@ class STTMiddleware:
         return self._model_path
 
     def load_model(self, model_path=None):
+        if not HAS_STT_VOSK:
+            raise ImportError(
+                "缺少 vosk 包，请安装: pip install vosk"
+            )
         if model_path:
             self._model_path = str(Path(model_path))
         if not self._model_path:
@@ -46,12 +69,21 @@ class STTMiddleware:
             if found:
                 self._model_path = str(found)
             else:
-                raise FileNotFoundError(
-                    "未找到Vosk语音模型，请放入 QRS/vosk_models/ 或指定路径"
-                )
-        import vosk
-        self._model = vosk.Model(self._model_path)
+                self._download_model()
+        self._model = _stt_vosk.Model(self._model_path)
         return self
+
+    def _download_model(self):
+        from .rosa_model_midware import ModelMiddleware
+        mm = ModelMiddleware()
+        downloaded = mm.ensure_stt_model()
+        found = self._find_model()
+        if found:
+            self._model_path = str(found)
+        else:
+            raise FileNotFoundError(
+                "未找到Vosk语音模型且自动下载失败，请手动放入 QRS/vosk_models/"
+            )
 
     def _find_model(self):
         if not self._vosk_dir.exists():
@@ -70,8 +102,7 @@ class STTMiddleware:
     def create_recognizer(self, sample_rate=16000):
         if not self._model:
             self.load_model()
-        import vosk
-        self._recognizer = vosk.KaldiRecognizer(self._model, sample_rate)
+        self._recognizer = _stt_vosk.KaldiRecognizer(self._model, sample_rate)
         return self._recognizer
 
     def recognize_once(self, audio_data):
@@ -110,16 +141,23 @@ class STTWorker(QThread):
         self._running = True
 
     def run(self):
-        import pyaudio
+        if not HAS_STT_PYAUDIO:
+            self.error.emit("缺少 pyaudio 语音库，语音输入不可用：pip install pyaudio")
+            self.status_changed.emit(False)
+            return
+        if not HAS_STT_VOSK:
+            self.error.emit("缺少 vosk 包，语音输入不可用：pip install vosk")
+            self.status_changed.emit(False)
+            return
         try:
             if not self.stt.is_loaded:
                 self.stt.load_model()
             self.stt.create_recognizer()
             self.stt.reset_recognizer()
 
-            pa = pyaudio.PyAudio()
+            pa = _stt_pyaudio.PyAudio()
             stream = pa.open(
-                format=pyaudio.paInt16, channels=1, rate=16000,
+                format=_stt_pyaudio.paInt16, channels=1, rate=16000,
                 input=True, frames_per_buffer=4000,
             )
             stream.start_stream()
