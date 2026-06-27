@@ -97,6 +97,17 @@ class PerceptionMiddleware:
     def is_monitoring(self):
         return self._monitor_running
 
+    @staticmethod
+    def list_cameras(max_check=5):
+        available = []
+        for i in range(max_check):
+            cap = cv2.VideoCapture(i)
+            if cap.isOpened():
+                backend = cap.getBackendName()
+                available.append({"index": i, "backend": backend})
+            cap.release()
+        return available
+
     def load_model(self, model_path=None):
         if model_path:
             self._model_path = model_path

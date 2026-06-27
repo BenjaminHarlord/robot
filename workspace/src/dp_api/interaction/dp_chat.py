@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 WORKSPACE_ROOT = SCRIPT_DIR.parents[4]
-MIDDLEWARE_DIR = WORKSPACE_ROOT / "workspace" / "tool_chain" / "Middleware"
+MIDDLEWARE_DIR = WORKSPACE_ROOT / "workspace" / "tool_chain" / "config"
 if str(MIDDLEWARE_DIR) not in sys.path:
     sys.path.insert(0, str(MIDDLEWARE_DIR))
 

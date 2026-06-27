@@ -218,7 +218,9 @@ class ROSADetectPanel(QWidget):
         if not self.agent.perception.is_loaded or self.agent.perception.model_path != model_path:
             self.agent.perception.load_model(model_path)
 
-        self.agent.perception.start_monitoring(device=0)
+        self.agent.perception.start_monitoring(
+            device=self.agent.config.get("perception", "camera_id", default=0)
+        )
         self._poll_timer.start(33)
         self.show()
 

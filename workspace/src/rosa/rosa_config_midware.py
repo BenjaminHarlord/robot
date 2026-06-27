@@ -20,6 +20,7 @@ DEFAULT_CONFIG = {
     "perception": {
         "model_path": "",
         "confidence_threshold": 0.5,
+        "camera_id": 0,
         "device": 0,
         "save_frame_interval": 10,
     },
@@ -77,7 +78,8 @@ class ConfigMiddleware:
         return {
             "model_path": self.get("perception", "model_path"),
             "confidence_threshold": self.get("perception", "confidence_threshold"),
-            "device": self.get("perception", "device"),
+            "camera_id": self.get("perception", "camera_id", default=0),
+            "device": self.get("perception", "device", default=0),
             "save_frame_interval": self.get("perception", "save_frame_interval"),
         }
 
