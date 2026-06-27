@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
 )
 
 TRIGGER_PHRASE = "亲密那有什么，请识别"
-YOLO_RECORD_DIR = Path("/home/andre/dev_root/robot/QRP/yolo_record")
+YOLO_RECORD_DIR = Path("/home/andre/dev_root/workspace/QRP/yolo_record")
 CSV_FIELDS = [
     "u_id", "u_na", "u_position",
     "detection_time", "detected_objects", "confidence",
@@ -103,9 +103,9 @@ class ModelSelectDialog(QDialog):
 
     def _select_default(self, model_name):
         search_paths = [
-            Path("/home/andre/dev_root/robot/robot/yolo_src/model") / model_name,
+            Path("/home/andre/dev_root/workspace/workspace/yolo_src/model") / model_name,
             Path.cwd() / model_name,
-            Path.home() / "dev_root" / "robot" / "robot" / "yolo_src" / "model" / model_name,
+            Path.home() / "dev_root" / "workspace" / "workspace" / "yolo_src" / "model" / model_name,
         ]
         for p in search_paths:
             if p.exists():

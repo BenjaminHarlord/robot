@@ -9,7 +9,7 @@ import shutil
 from pathlib import Path
 
 # ========== 用户配置 ==========
-DATASET_ROOT = Path("/home/andre/dev_root/robot/yolo_src/datasetss/coco/yolosets")  # 你的数据集根目录
+DATASET_ROOT = Path("/home/andre/dev_root/workspace/yolo_src/datasetss/coco/yolosets")  # 你的数据集根目录
 SPLITS = ["train2017", "val2017", "test"]      # 要处理的子集名称（如果验证集叫 val2017，请修改）
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 LABEL_EXTENSION = ".txt"

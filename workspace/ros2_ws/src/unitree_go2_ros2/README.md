@@ -53,7 +53,7 @@ CHAMP (Coupled Hybrid Automata for Mobile Platforms) is an open-source developme
 sudo apt update
 sudo apt install ros-jazzy-gazebo-ros2-control
 sudo apt install ros-jazzy-xacro
-sudo apt install ros-jazzy-robot-localization
+sudo apt install ros-jazzy-workspace-localization
 sudo apt install ros-jazzy-ros2-controllers
 sudo apt install ros-jazzy-ros2-control
 sudo apt install ros-jazzy-velodyne

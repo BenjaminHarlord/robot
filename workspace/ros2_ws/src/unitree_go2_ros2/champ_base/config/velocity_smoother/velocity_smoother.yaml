@@ -18,5 +18,5 @@ decel_factor: 1.0
 # Robot velocity feedback type:
 #  0 - none
 #  1 - odometry
-#  2 - end robot commands
+#  2 - end workspace commands
 robot_feedback: 2

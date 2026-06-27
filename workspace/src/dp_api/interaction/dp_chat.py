@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 WORKSPACE_ROOT = SCRIPT_DIR.parents[4]
-MIDDLEWARE_DIR = WORKSPACE_ROOT / "robot" / "tool_chain" / "Middleware"
+MIDDLEWARE_DIR = WORKSPACE_ROOT / "workspace" / "tool_chain" / "Middleware"
 if str(MIDDLEWARE_DIR) not in sys.path:
     sys.path.insert(0, str(MIDDLEWARE_DIR))
 
@@ -28,8 +28,8 @@ if str(SKILLS_DIR) not in sys.path:
 from dp_drive import ChatImageMiddleware, ImageResearchConfig, extract_image_urls
 from torch_skill import YOLOSkill, ModelSelectDialog
 
-USER_CONFIG_PATH = WORKSPACE_ROOT / "robot" / "dataclume" / "user" / "user.json"
-CSV_RECORD_DIR = Path("/home/andre/dev_root/robot/QRP/dp_record")
+USER_CONFIG_PATH = WORKSPACE_ROOT / "workspace" / "dataclume" / "user" / "user.json"
+CSV_RECORD_DIR = Path("/home/andre/dev_root/workspace/QRP/dp_record")
 MAX_RECORDS_PER_FILE = 100000
 CSV_FIELDS = ["u_id", "u_na", "u_position", "u_message", "model_name", "u_tkTime", "u_ask"]
 

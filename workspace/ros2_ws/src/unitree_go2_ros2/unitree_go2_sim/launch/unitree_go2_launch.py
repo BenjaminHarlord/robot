@@ -70,7 +70,7 @@ def generate_launch_description():
     declare_description_path = DeclareLaunchArgument(
         "unitree_go2_description_path",
         default_value=default_model_path,
-        description="Path to the robot description xacro file",
+        description="Path to the workspace description xacro file",
     )
     
     # Description nodes and parameters
@@ -213,7 +213,7 @@ def generate_launch_description():
         }.items(),
     )
     
-    # Spawn robot in Gazebo Sim
+    # Spawn workspace in Gazebo Sim
     gazebo_spawn_robot = Node(
         package='ros_gz_sim',
         executable='create',
@@ -319,7 +319,7 @@ def generate_launch_description():
             declare_world_init_heading,
             declare_description_path, 
             
-            # Gazebo and robot nodes first
+            # Gazebo and workspace nodes first
             gz_sim,
             robot_state_publisher_node,
             gazebo_spawn_robot,
