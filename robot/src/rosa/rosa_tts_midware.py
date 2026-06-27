@@ -110,10 +110,7 @@ class TTSMiddleware:
                 import io
                 buf = io.BytesIO()
                 wav_file = wave.open(buf, "wb")
-                wav_file.setnchannels(1)
-                wav_file.setsampwidth(2)
-                wav_file.setframerate(22050)
-                self._voice.synthesize(text, wav_file)
+                self._voice.synthesize_wav(text, wav_file)
                 wav_file.close()
 
                 buf.seek(0)

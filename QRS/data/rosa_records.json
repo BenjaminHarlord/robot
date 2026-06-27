@@ -2734,6 +2734,518 @@
       },
       "id": 83,
       "timestamp": "2026-06-24 16:29:46"
+    },
+    {
+      "type": "detection",
+      "detection": {
+        "objects": [
+          "person"
+        ],
+        "confidences": [
+          0.8972
+        ],
+        "count": 1,
+        "summary": "person",
+        "timestamp": "2026-06-27 11:07:19.606780"
+      },
+      "frame_path": "E:\\devRoot\\robot\\QRS\\images\\det_20260627_110719_651383.jpg",
+      "id": 84,
+      "timestamp": "2026-06-27 11:07:19"
+    },
+    {
+      "type": "interaction",
+      "user_input": "我周围都有什么？",
+      "command": {
+        "raw_text": "我周围都有什么？",
+        "cmd_type": "detect",
+        "intent": "检测触发: 有什么",
+        "target": "*",
+        "params": {},
+        "confidence": 0.95
+      },
+      "decision": {
+        "action": "do_detect",
+        "target": "*",
+        "params": {},
+        "reasoning": "规则: YOLO检测触发",
+        "priority": 8
+      },
+      "result": {
+        "action": "detect",
+        "detection": {
+          "objects": [
+            "person"
+          ],
+          "confidences": [
+            0.8972
+          ],
+          "count": 1,
+          "summary": "person",
+          "timestamp": "2026-06-27 11:07:19.606780"
+        },
+        "frame_saved": "E:\\devRoot\\robot\\QRS\\images\\det_20260627_110719_651383.jpg",
+        "message": "我看到一个人。"
+      },
+      "id": 85,
+      "timestamp": "2026-06-27 11:07:20"
+    },
+    {
+      "type": "interaction",
+      "user_input": "有没有potter?",
+      "command": {
+        "raw_text": "有没有potter?",
+        "cmd_type": "inquire",
+        "intent": "查询统计",
+        "target": "*",
+        "params": {},
+        "confidence": 0.9
+      },
+      "decision": {
+        "action": "check_presence",
+        "target": "*",
+        "params": {},
+        "reasoning": "规则: 存在性检查",
+        "priority": 7
+      },
+      "result": {
+        "action": "check",
+        "exists": false,
+        "message": "请指定要查找的目标"
+      },
+      "id": 86,
+      "timestamp": "2026-06-27 11:07:39"
+    },
+    {
+      "type": "interaction",
+      "user_input": "我周围有没有椅子？",
+      "command": {
+        "raw_text": "我周围有没有椅子？",
+        "cmd_type": "inquire",
+        "intent": "查询: 周围",
+        "target": "chair",
+        "params": {},
+        "confidence": 0.92
+      },
+      "decision": {
+        "action": "check_presence",
+        "target": "chair",
+        "params": {},
+        "reasoning": "规则: 存在性检查",
+        "priority": 7
+      },
+      "result": {
+        "action": "check",
+        "target": "chair",
+        "exists": true,
+        "detection": {
+          "objects": [
+            "person",
+            "chair",
+            "potted plant"
+          ],
+          "confidences": [
+            0.971,
+            0.7346,
+            0.6841
+          ],
+          "count": 3,
+          "summary": "person, chair, potted plant",
+          "timestamp": "2026-06-27 11:07:55.848698"
+        },
+        "message": "我看到了椅子。"
+      },
+      "id": 87,
+      "timestamp": "2026-06-27 11:07:56"
+    },
+    {
+      "type": "interaction",
+      "user_input": "有几把椅子",
+      "command": {
+        "raw_text": "有几把椅子",
+        "cmd_type": "inquire",
+        "intent": "查询统计",
+        "target": "chair",
+        "params": {},
+        "confidence": 0.9
+      },
+      "decision": {
+        "action": "check_presence",
+        "target": "chair",
+        "params": {},
+        "reasoning": "规则: 存在性检查",
+        "priority": 7
+      },
+      "result": {
+        "action": "check",
+        "target": "chair",
+        "exists": true,
+        "detection": {
+          "objects": [
+            "person",
+            "chair",
+            "potted plant",
+            "chair",
+            "chair",
+            "dining table",
+            "chair"
+          ],
+          "confidences": [
+            0.9671,
+            0.7351,
+            0.72,
+            0.67,
+            0.5714,
+            0.5639,
+            0.5407
+          ],
+          "count": 7,
+          "summary": "person, chair, potted plant, chair, chair, dining table, chair",
+          "timestamp": "2026-06-27 11:08:11.318170"
+        },
+        "message": "我看到了椅子。"
+      },
+      "id": 88,
+      "timestamp": "2026-06-27 11:08:12"
+    },
+    {
+      "type": "detection",
+      "detection": {
+        "objects": [
+          "person",
+          "chair",
+          "chair",
+          "dining table"
+        ],
+        "confidences": [
+          0.9641,
+          0.9326,
+          0.5955,
+          0.5687
+        ],
+        "count": 4,
+        "summary": "person, chair, chair, dining table",
+        "timestamp": "2026-06-27 11:08:33.485784"
+      },
+      "frame_path": "E:\\devRoot\\robot\\QRS\\images\\det_20260627_110833_524677.jpg",
+      "id": 89,
+      "timestamp": "2026-06-27 11:08:33"
+    },
+    {
+      "type": "interaction",
+      "user_input": "你看见了什么？",
+      "command": {
+        "raw_text": "你看见了什么？",
+        "cmd_type": "detect",
+        "intent": "询问当前视野中的物体",
+        "target": "视野中的物体",
+        "params": {},
+        "confidence": 0.95
+      },
+      "decision": {
+        "action": "do_detect",
+        "target": "视野中的物体",
+        "params": {},
+        "reasoning": "规则: YOLO检测触发",
+        "priority": 8
+      },
+      "result": {
+        "action": "detect",
+        "detection": {
+          "objects": [
+            "person",
+            "chair",
+            "chair",
+            "dining table"
+          ],
+          "confidences": [
+            0.9641,
+            0.9326,
+            0.5955,
+            0.5687
+          ],
+          "count": 4,
+          "summary": "person, chair, chair, dining table",
+          "timestamp": "2026-06-27 11:08:33.485784"
+        },
+        "frame_saved": "E:\\devRoot\\robot\\QRS\\images\\det_20260627_110833_524677.jpg",
+        "message": "我看到一个人、两张椅子和一张餐桌。"
+      },
+      "id": 90,
+      "timestamp": "2026-06-27 11:08:34"
+    },
+    {
+      "type": "detection",
+      "detection": {
+        "objects": [
+          "person",
+          "chair",
+          "chair",
+          "dining table"
+        ],
+        "confidences": [
+          0.9618,
+          0.9174,
+          0.5704,
+          0.5348
+        ],
+        "count": 4,
+        "summary": "person, chair, chair, dining table",
+        "timestamp": "2026-06-27 11:16:37.681824"
+      },
+      "frame_path": "E:\\devRoot\\robot\\QRS\\images\\det_20260627_111637_712298.jpg",
+      "id": 91,
+      "timestamp": "2026-06-27 11:16:37"
+    },
+    {
+      "type": "interaction",
+      "user_input": "你看到了什么",
+      "command": {
+        "raw_text": "你看到了什么",
+        "cmd_type": "detect",
+        "intent": "询问当前视野中的物体",
+        "target": "视野中的物体",
+        "params": {},
+        "confidence": 0.95
+      },
+      "decision": {
+        "action": "do_detect",
+        "target": "视野中的物体",
+        "params": {},
+        "reasoning": "规则: YOLO检测触发",
+        "priority": 8
+      },
+      "result": {
+        "action": "detect",
+        "detection": {
+          "objects": [
+            "person",
+            "chair",
+            "chair",
+            "dining table"
+          ],
+          "confidences": [
+            0.9618,
+            0.9174,
+            0.5704,
+            0.5348
+          ],
+          "count": 4,
+          "summary": "person, chair, chair, dining table",
+          "timestamp": "2026-06-27 11:16:37.681824"
+        },
+        "frame_saved": "E:\\devRoot\\robot\\QRS\\images\\det_20260627_111637_712298.jpg",
+        "message": "我看到一个人、两把椅子、一张餐桌。"
+      },
+      "id": 92,
+      "timestamp": "2026-06-27 11:16:38"
+    },
+    {
+      "type": "interaction",
+      "user_input": "饭",
+      "command": {
+        "raw_text": "饭",
+        "cmd_type": "chat",
+        "intent": "用户说了一个字，可能是闲聊或未完成输入",
+        "target": "无",
+        "params": {},
+        "confidence": 0.3
+      },
+      "decision": {
+        "action": "chat_reply",
+        "target": "无",
+        "params": {},
+        "reasoning": "规则: 普通对话",
+        "priority": 5
+      },
+      "result": {
+        "action": "chat",
+        "reply": "您好！我理解您提到了“饭”，但我不太确定您想做什么样的检测任务。您可以提供更多信息吗？例如：\n\n- 您想检测食物的安全性（如温度、新鲜度）？\n- 想检测饭后的环境（如桌面清洁度）？\n- 或者需要帮助识别饭的种类、成分？\n\n请告诉我您当前的环境或任务，我会尽力协助！",
+        "message": "对话完成"
+      },
+      "id": 93,
+      "timestamp": "2026-06-27 11:18:15"
+    },
+    {
+      "type": "detection",
+      "detection": {
+        "objects": [
+          "person",
+          "chair"
+        ],
+        "confidences": [
+          0.9628,
+          0.8335
+        ],
+        "count": 2,
+        "summary": "person, chair",
+        "timestamp": "2026-06-27 11:19:10.676146"
+      },
+      "frame_path": "E:\\devRoot\\robot\\QRS\\images\\det_20260627_111910_695662.jpg",
+      "id": 94,
+      "timestamp": "2026-06-27 11:19:10"
+    },
+    {
+      "type": "interaction",
+      "user_input": "怎么样你觉得周围环境 我",
+      "command": {
+        "raw_text": "怎么样你觉得周围环境 我",
+        "cmd_type": "detect",
+        "intent": "检测触发: 周围",
+        "target": "*",
+        "params": {},
+        "confidence": 0.95
+      },
+      "decision": {
+        "action": "do_detect",
+        "target": "*",
+        "params": {},
+        "reasoning": "规则: YOLO检测触发",
+        "priority": 8
+      },
+      "result": {
+        "action": "detect",
+        "detection": {
+          "objects": [
+            "person",
+            "chair"
+          ],
+          "confidences": [
+            0.9628,
+            0.8335
+          ],
+          "count": 2,
+          "summary": "person, chair",
+          "timestamp": "2026-06-27 11:19:10.676146"
+        },
+        "frame_saved": "E:\\devRoot\\robot\\QRS\\images\\det_20260627_111910_695662.jpg",
+        "message": "我检测到你和一把椅子。"
+      },
+      "id": 95,
+      "timestamp": "2026-06-27 11:19:11"
+    },
+    {
+      "type": "interaction",
+      "user_input": "你好，请详细介绍你自己",
+      "command": {
+        "raw_text": "你好，请详细介绍你自己",
+        "cmd_type": "chat",
+        "intent": "自我介绍",
+        "target": "机器人自身",
+        "params": {},
+        "confidence": 1.0
+      },
+      "decision": {
+        "action": "chat_reply",
+        "target": "机器人自身",
+        "params": {},
+        "reasoning": "规则: 普通对话",
+        "priority": 5
+      },
+      "result": {
+        "action": "chat",
+        "reply": "你好！我是ROSA机器人智能助手，专门设计用于帮助用户理解周围环境并执行检测任务。我配备了先进的传感器、摄像头和人工智能算法，能够实时感知、分析环境数据，并在各种场景下提供精准支持。\n\n我的核心功能包括：\n1. **环境感知与理解**：通过激光雷达、视觉摄像头和红外传感器，我能实时构建周围环境的3D地图，检测障碍物、物体和人类活动，并以语音或图形界面向你清晰反馈。\n2. **目标检测与识别**：我可以识别特定物体（如设备、标志、人）、跟踪移动目标，并检测异常情况（如烟雾、漏水或温度变化），适用于巡检、安防或工业场景。\n3. **任务执行**：根据你的指令，我能自主导航、采集数据（如拍照、测量距离）、记录日志，并完成简单的物理操作（如通过机械臂抓取物品）。\n4. **交互与支持**：我支持语音对话、自然语言指令和预设程序，可以解释你的疑问、提供检测结果，并协助优化任务流程。\n\n例如，如果你需要检查仓库设备状态，我会扫描环境、标记异常设备并生成报告；如果你在陌生区域探索，我能实时提示路径和潜在风险。我的目标是成为你的可靠助手，让复杂任务变得更简单、高效！\n\n有什么具体需求或场景想了解吗？我会随时为你服务！",
+        "message": "对话完成"
+      },
+      "id": 96,
+      "timestamp": "2026-06-27 11:41:27"
+    },
+    {
+      "type": "interaction",
+      "user_input": "你好，下是哪个细节上海你自己",
+      "command": {
+        "raw_text": "你好，下是哪个细节上海你自己",
+        "cmd_type": "chat",
+        "intent": "打招呼并询问细节",
+        "target": "上海",
+        "params": {},
+        "confidence": 0.6
+      },
+      "decision": {
+        "action": "chat_reply",
+        "target": "上海",
+        "params": {},
+        "reasoning": "规则: 普通对话",
+        "priority": 5
+      },
+      "result": {
+        "action": "chat",
+        "reply": "您好！我是ROSA机器人智能助手。您提到的“下是哪个细节上海我自己”这句话我有些不太明白，可能是输入时出现了小问题。如果您有任何环境检测任务或需要帮助理解周围环境，请随时告诉我具体需求，比如检测空气质量、温度、湿度或识别物品等。我会尽力协助您！",
+        "message": "对话完成"
+      },
+      "id": 97,
+      "timestamp": "2026-06-27 11:44:23"
+    },
+    {
+      "type": "interaction",
+      "user_input": "你是基于什么创造的",
+      "command": {
+        "raw_text": "你是基于什么创造的",
+        "cmd_type": "chat",
+        "intent": "询问创造基础",
+        "target": "创造基础",
+        "params": {},
+        "confidence": 1.0
+      },
+      "decision": {
+        "action": "chat_reply",
+        "target": "创造基础",
+        "params": {},
+        "reasoning": "规则: 普通对话",
+        "priority": 5
+      },
+      "result": {
+        "action": "chat",
+        "reply": "我是基于先进的机器人操作系统（ROS）和人工智能技术创建的。具体来说，我融合了自然语言处理、计算机视觉、传感器融合和路径规划等多种算法，通过深度学习和强化学习框架训练而成。这些技术使我能够理解人类指令、感知环境信息，并执行检测或导航任务。简而言之，我的创造源于将机器人硬件与智能软件结合，旨在提供高效、可靠的环境交互和任务执行能力。",
+        "message": "对话完成"
+      },
+      "id": 98,
+      "timestamp": "2026-06-27 11:45:12"
+    },
+    {
+      "type": "interaction",
+      "user_input": "我现在周围有没有椅子？",
+      "command": {
+        "raw_text": "我现在周围有没有椅子？",
+        "cmd_type": "inquire",
+        "intent": "查询: 周围",
+        "target": "chair",
+        "params": {},
+        "confidence": 0.92
+      },
+      "decision": {
+        "action": "check_presence",
+        "target": "chair",
+        "params": {},
+        "reasoning": "规则: 存在性检查",
+        "priority": 7
+      },
+      "result": {
+        "action": "check",
+        "target": "chair",
+        "exists": true,
+        "detection": {
+          "objects": [
+            "person",
+            "chair",
+            "chair",
+            "chair",
+            "dining table"
+          ],
+          "confidences": [
+            0.964,
+            0.9255,
+            0.6437,
+            0.5864,
+            0.5043
+          ],
+          "count": 5,
+          "summary": "person, chair, chair, chair, dining table",
+          "timestamp": "2026-06-27 11:46:02.253536"
+        },
+        "message": "有椅子。"
+      },
+      "id": 99,
+      "timestamp": "2026-06-27 11:46:03"
     }
   ]
 }

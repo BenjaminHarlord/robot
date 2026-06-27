@@ -382,6 +382,23 @@ class ROSAWindow(QMainWindow):
         self._init_agent()
         self.init_ui()
         self._check_deps()
+        self._auto_load_tts()
+
+    def _auto_load_tts(self):
+        if self.models.check_tts_ready():
+            self.tts_btn.setEnabled(False)
+            self.tts_btn.setText("加载中...")
+            self._tts_load_worker = TTSLoadWorker(self.tts)
+            self._tts_load_worker.loaded.connect(self._on_tts_loaded)
+            self._tts_load_worker.error.connect(self._on_tts_load_error)
+            self._tts_load_worker.start()
+        else:
+            self.tts_btn.setText(TTSP_OFF)
+            self.tts_btn.setStyleSheet(
+                f"QPushButton {{ background-color: {COLOR_OFF}; color: white; border: none; "
+                "border-radius: 4px; font-weight: bold; font-size: 10pt; }}"
+            )
+            self.tts.enabled = False
 
     def _init_agent(self):
         try:

@@ -1,4 +1,3 @@
-import sys as _sys
 import threading
 from pathlib import Path
 
@@ -6,10 +5,6 @@ from PyQt6.QtCore import QThread, pyqtSignal
 
 QRS_ROOT = Path(__file__).resolve().parent.parent.parent.parent / "QRS"
 DEFAULT_VOSK_DIR = QRS_ROOT / "vosk_models"
-
-_VOSK_PYTHON_DIR = Path(__file__).resolve().parent.parent / "vosk" / "python"
-if str(_VOSK_PYTHON_DIR) not in _sys.path:
-    _sys.path.insert(0, str(_VOSK_PYTHON_DIR))
 
 try:
     import pyaudio as _stt_pyaudio
@@ -19,10 +14,11 @@ except ImportError:
     HAS_STT_PYAUDIO = False
 
 try:
-    import vosk as _stt_vosk
+    from vosk import Model as VoskModel, KaldiRecognizer
     HAS_STT_VOSK = True
 except ImportError:
-    _stt_vosk = None
+    VoskModel = None
+    KaldiRecognizer = None
     HAS_STT_VOSK = False
 
 
@@ -70,7 +66,7 @@ class STTMiddleware:
                 self._model_path = str(found)
             else:
                 self._download_model()
-        self._model = _stt_vosk.Model(self._model_path)
+        self._model = VoskModel(self._model_path)
         return self
 
     def _download_model(self):
@@ -88,21 +84,34 @@ class STTMiddleware:
     def _find_model(self):
         if not self._vosk_dir.exists():
             return None
+        for model_name in ("vosk-model-cn-0.22", "vosk-model-small-cn-0.22"):
+            model_dir = self._vosk_dir / model_name
+            if not model_dir.is_dir():
+                continue
+            am_path = model_dir / "am" / "final.mdl"
+            conf_path = model_dir / "conf" / "model.conf"
+            if am_path.exists() and conf_path.exists():
+                return model_dir
+            graph_dir = model_dir / "graph"
+            if graph_dir.exists():
+                return model_dir
         for entry in self._vosk_dir.iterdir():
-            if entry.is_dir():
-                am_path = entry / "am" / "final.mdl"
-                conf_path = entry / "conf" / "model.conf"
-                if am_path.exists() and conf_path.exists():
-                    return entry
-                graph_dir = entry / "graph"
-                if graph_dir.exists():
-                    return entry
+            if not entry.is_dir():
+                continue
+            am_path = entry / "am" / "final.mdl"
+            conf_path = entry / "conf" / "model.conf"
+            if am_path.exists() and conf_path.exists():
+                return entry
+            graph_dir = entry / "graph"
+            if graph_dir.exists():
+                return entry
         return None
 
     def create_recognizer(self, sample_rate=16000):
         if not self._model:
             self.load_model()
-        self._recognizer = _stt_vosk.KaldiRecognizer(self._model, sample_rate)
+        self._recognizer = KaldiRecognizer(self._model, sample_rate)
+        self._recognizer.SetWords(True)
         return self._recognizer
 
     def recognize_once(self, audio_data):

@@ -30,28 +30,43 @@ except ImportError:
     HAS_PIPER = False
 
 try:
-    import vosk as _vosk_mod
+    from vosk import Model as _VoskModel
     HAS_VOSK = True
 except ImportError:
-    _vosk_mod = None
+    _VoskModel = None
     HAS_VOSK = False
 
-_VOSK_NATIVE = HAS_VOSK and hasattr(_vosk_mod, "_c") and _vosk_mod._c is not None
+_VOSK_NATIVE = HAS_VOSK and _VoskModel is not None
 
 PIPER_VOICES = {
     "zh_CN-huayan-medium": {
         "onnx": "zh_CN-huayan-medium.onnx",
         "json": "zh_CN-huayan-medium.onnx.json",
-        "url_base": "https://huggingface.co/rhasspy/piper-voices/resolve/main/zh/zh_CN/huayan/medium/",
+        "url_base": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/zh/zh_CN/huayan/medium/",
     },
 }
 
-VOSK_DEFAULT_MODEL = "vosk-model-small-cn-0.22"
-VOSK_DOWNLOAD_URL = "https://alphacephei.com/vosk/models/vosk-model-small-cn-0.22.zip"
+VOSK_MODELS = {
+    "vosk-model-cn-0.22": {
+        "name": "vosk-model-cn-0.22",
+        "url": "https://alphacephei.com/vosk/models/vosk-model-cn-0.22.zip",
+        "size": "1.3G",
+        "desc": "中文大模型 — 高精度，推荐桌面端使用",
+    },
+    "vosk-model-small-cn-0.22": {
+        "name": "vosk-model-small-cn-0.22",
+        "url": "https://alphacephei.com/vosk/models/vosk-model-small-cn-0.22.zip",
+        "size": "42M",
+        "desc": "中文小模型 — 轻量，适合移动/RPi",
+    },
+}
 
-_DOWNLOAD_RETRIES = 3
-_DOWNLOAD_TIMEOUT = (15, 120)
-_CHUNK_SIZE = 65536
+VOSK_DEFAULT_MODEL = "vosk-model-cn-0.22"
+VOSK_FALLBACK_MODEL = "vosk-model-small-cn-0.22"
+
+_DOWNLOAD_RETRIES = 5
+_DOWNLOAD_TIMEOUT = (15, 300)
+_CHUNK_SIZE = 131072
 
 _session = None
 
@@ -71,37 +86,47 @@ def _download_file(url, dst_path, progress_callback=None, label=""):
     last_error = None
     for attempt in range(1, _DOWNLOAD_RETRIES + 1):
         try:
-            if progress_callback:
-                progress_callback(f"{label} 下载中 ({attempt}/{_DOWNLOAD_RETRIES}) ...")
-
             session = _get_session()
-            resp = session.get(url, stream=True, timeout=_DOWNLOAD_TIMEOUT)
+            headers = {}
+            resume_pos = 0
+            if dst_path.exists():
+                resume_pos = dst_path.stat().st_size
+                if resume_pos > 0:
+                    headers["Range"] = f"bytes={resume_pos}-"
+                    mode = "ab"
+                    if progress_callback:
+                        progress_callback(f"{label} 续传中 ({attempt}/{_DOWNLOAD_RETRIES}) ...")
+                else:
+                    mode = "wb"
+            else:
+                mode = "wb"
+                if progress_callback:
+                    progress_callback(f"{label} 下载中 ({attempt}/{_DOWNLOAD_RETRIES}) ...")
+
+            resp = session.get(url, stream=True, timeout=_DOWNLOAD_TIMEOUT, headers=headers)
             resp.raise_for_status()
 
             total = int(resp.headers.get("content-length", 0))
-            downloaded = 0
-            with open(dst_path, "wb") as f:
+            if resp.status_code == 206:
+                total += resume_pos
+            elif resume_pos > 0:
+                if progress_callback:
+                    progress_callback(f"{label} 服务器不支持续传，重新下载 ...")
+                mode = "wb"
+                resume_pos = 0
+            downloaded = resume_pos
+
+            with open(dst_path, mode) as f:
                 for chunk in resp.iter_content(chunk_size=_CHUNK_SIZE):
                     if chunk:
                         f.write(chunk)
                         downloaded += len(chunk)
             return dst_path
-        except requests.exceptions.SSLError as e:
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError,
+                requests.exceptions.ChunkedEncodingError) as e:
             last_error = e
             if progress_callback:
-                progress_callback(f"{label} SSL 错误 (尝试 {attempt}/{_DOWNLOAD_RETRIES})")
-            if attempt < _DOWNLOAD_RETRIES:
-                time.sleep(2)
-        except requests.exceptions.Timeout as e:
-            last_error = e
-            if progress_callback:
-                progress_callback(f"{label} 超时 (尝试 {attempt}/{_DOWNLOAD_RETRIES})")
-            if attempt < _DOWNLOAD_RETRIES:
-                time.sleep(2)
-        except requests.exceptions.ConnectionError as e:
-            last_error = e
-            if progress_callback:
-                progress_callback(f"{label} 连接失败 (尝试 {attempt}/{_DOWNLOAD_RETRIES})")
+                progress_callback(f"{label} 故障 (尝试 {attempt}/{_DOWNLOAD_RETRIES})")
             if attempt < _DOWNLOAD_RETRIES:
                 time.sleep(3)
         except Exception as e:
@@ -184,9 +209,14 @@ class ModelMiddleware:
         if target_dir.exists() and any(target_dir.iterdir()):
             return target_dir
 
+        model_info = VOSK_MODELS.get(model_name)
+        if not model_info:
+            raise ValueError(f"未知的Vosk模型: {model_name}")
+        download_url = model_info["url"]
+
         zip_path = VOSK_DIR / f"{model_name}.zip"
         _download_file(
-            VOSK_DOWNLOAD_URL, zip_path,
+            download_url, zip_path,
             progress_callback=progress_callback, label=model_name,
         )
 
@@ -200,14 +230,11 @@ class ModelMiddleware:
 
         return target_dir
 
-    def ensure_tts_model(self, progress_callback=None):
-        if self.has_piper_model():
-            return PIPER_DIR
-        return self.download_piper_model(progress_callback=progress_callback)
-
     def ensure_stt_model(self, progress_callback=None):
-        if self.has_vosk_model():
-            return VOSK_DIR
+        for model_name in (VOSK_DEFAULT_MODEL, VOSK_FALLBACK_MODEL):
+            model_dir = VOSK_DIR / model_name
+            if model_dir.exists() and any(model_dir.iterdir()):
+                return model_dir
         return self.download_vosk_model(progress_callback=progress_callback)
 
     def status(self):
