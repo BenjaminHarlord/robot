@@ -3,7 +3,7 @@ from pathlib import Path
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
-QRS_ROOT = Path(__file__).resolve().parent.parent.parent.parent / "QRS"
+QRS_ROOT = Path(__file__).parent.parent.parent.parent / "QRS"
 DEFAULT_VOSK_DIR = QRS_ROOT / "vosk_models"
 
 try:

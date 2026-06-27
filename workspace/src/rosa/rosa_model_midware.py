@@ -4,7 +4,7 @@ import time
 
 import requests
 
-QRS_ROOT = Path(__file__).resolve().parent.parent.parent.parent / "QRS"
+QRS_ROOT = Path(__file__).parent.parent.parent.parent / "QRS"
 PIPER_DIR = QRS_ROOT / "piper"
 VOSK_DIR = QRS_ROOT / "vosk_models"
 

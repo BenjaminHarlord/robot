@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-DPAPI_SKILLS = Path(__file__).resolve().parent.parent / "dp_api" / "skills"
+DPAPI_SKILLS = Path(__file__).parent.parent / "dp_api" / "skills"
 LANGUAGE_INC_PATH = DPAPI_SKILLS / "language_inc.json"
 
 

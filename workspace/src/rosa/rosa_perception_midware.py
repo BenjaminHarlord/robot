@@ -17,7 +17,7 @@ def _get_yolo():
         from ultralytics import YOLO as _YOLO
     return _YOLO
 
-QRS_ROOT = Path(__file__).resolve().parent.parent.parent.parent / "QRS"
+QRS_ROOT = Path(__file__).parent.parent.parent.parent / "QRS"
 DEFAULT_MODELS_DIR = QRS_ROOT / "models"
 DEFAULT_IMAGES_DIR = QRS_ROOT / "images"
 

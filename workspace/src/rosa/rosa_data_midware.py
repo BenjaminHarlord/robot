@@ -3,7 +3,7 @@ import threading
 from datetime import datetime
 from pathlib import Path
 
-QRS_ROOT = Path(__file__).resolve().parent.parent.parent.parent / "QRS"
+QRS_ROOT = Path(__file__).parent.parent.parent.parent / "QRS"
 DATA_PATH = QRS_ROOT / "data" / "rosa_records.json"
 
 

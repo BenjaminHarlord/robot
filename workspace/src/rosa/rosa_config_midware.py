@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-QRS_ROOT = Path(__file__).resolve().parent.parent.parent.parent / "QRS"
+QRS_ROOT = Path(__file__).parent.parent.parent.parent / "QRS"
 CONFIG_PATH = QRS_ROOT / "config" / "rosa_config.json"
 
 DEFAULT_CONFIG = {

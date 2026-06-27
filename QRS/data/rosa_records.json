@@ -4028,6 +4028,202 @@
       },
       "id": 124,
       "timestamp": "2026-06-27 12:07:34"
+    },
+    {
+      "type": "detection",
+      "detection": {
+        "objects": [
+          "person",
+          "chair",
+          "chair",
+          "dining table",
+          "potted plant"
+        ],
+        "confidences": [
+          0.9645,
+          0.9288,
+          0.8406,
+          0.5967,
+          0.5641
+        ],
+        "count": 5,
+        "summary": "person, chair, chair, dining table, potted plant",
+        "timestamp": "2026-06-27 12:22:30.570920"
+      },
+      "frame_path": "E:\\devRoot\\robot\\QRS\\images\\det_20260627_122230_578635.jpg",
+      "id": 125,
+      "timestamp": "2026-06-27 12:22:30"
+    },
+    {
+      "type": "interaction",
+      "user_input": "告诉我周围环境，你是有谁开发的",
+      "command": {
+        "raw_text": "告诉我周围环境，你是有谁开发的",
+        "cmd_type": "detect",
+        "intent": "检测触发: 周围",
+        "target": "*",
+        "params": {},
+        "confidence": 0.95
+      },
+      "decision": {
+        "action": "do_detect",
+        "target": "*",
+        "params": {},
+        "reasoning": "规则: YOLO检测触发",
+        "priority": 8
+      },
+      "result": {
+        "action": "detect",
+        "detection": {
+          "objects": [
+            "person",
+            "chair",
+            "chair",
+            "dining table",
+            "potted plant"
+          ],
+          "confidences": [
+            0.9645,
+            0.9288,
+            0.8406,
+            0.5967,
+            0.5641
+          ],
+          "count": 5,
+          "summary": "person, chair, chair, dining table, potted plant",
+          "timestamp": "2026-06-27 12:22:30.570920"
+        },
+        "frame_saved": "E:\\devRoot\\robot\\QRS\\images\\det_20260627_122230_578635.jpg",
+        "message": "哈哈，我看到你正坐在餐桌旁，旁边还有两把空椅子，像是等着朋友来聚餐呢！角落里那盆绿植挺精神，给房间添了点生气。我是由安德烈·萨沙·阿列克谢维奇开发的，他给了我这对\"眼睛\"来看世界。"
+      },
+      "id": 126,
+      "timestamp": "2026-06-27 12:22:32"
+    },
+    {
+      "type": "interaction",
+      "user_input": "你能干什么",
+      "command": {
+        "raw_text": "你能干什么",
+        "cmd_type": "chat",
+        "intent": "询问功能",
+        "target": "机器人",
+        "params": {},
+        "confidence": 1.0
+      },
+      "decision": {
+        "action": "chat_reply",
+        "target": "机器人",
+        "params": {},
+        "reasoning": "规则: 普通对话",
+        "priority": 5
+      },
+      "result": {
+        "action": "chat",
+        "reply": "我是ROSA机器人智能助手，可以为你执行检测任务和帮助理解环境。比如，我可以协助你识别障碍物、分析周围环境数据或完成指定的检测工作。有什么我可以帮你的吗？",
+        "message": "对话完成"
+      },
+      "id": 127,
+      "timestamp": "2026-06-27 12:22:58"
+    },
+    {
+      "type": "interaction",
+      "user_input": "你可以介绍你自己吗",
+      "command": {
+        "raw_text": "你可以介绍你自己吗",
+        "cmd_type": "chat",
+        "intent": "自我介绍",
+        "target": "机器人自身",
+        "params": {},
+        "confidence": 1.0
+      },
+      "decision": {
+        "action": "chat_reply",
+        "target": "机器人自身",
+        "params": {},
+        "reasoning": "规则: 普通对话",
+        "priority": 5
+      },
+      "result": {
+        "action": "chat",
+        "reply": "你好！我是ROSA机器人智能助手，被设计来协助用户完成环境理解、任务执行和检测工作。我的开发者是安德烈·萨沙·阿列克谢维奇，他赋予我智能分析与高效执行的能力。如果你有任何需要我帮忙的，无论是识别周围环境还是执行检测任务，请随时告诉我！",
+        "message": "对话完成"
+      },
+      "id": 128,
+      "timestamp": "2026-06-27 12:23:28"
+    },
+    {
+      "type": "detection",
+      "detection": {
+        "objects": [
+          "person",
+          "chair",
+          "chair",
+          "chair",
+          "chair",
+          "dining table"
+        ],
+        "confidences": [
+          0.9562,
+          0.93,
+          0.8092,
+          0.627,
+          0.5985,
+          0.542
+        ],
+        "count": 6,
+        "summary": "person, chair, chair, chair, chair, dining table",
+        "timestamp": "2026-06-27 12:24:07.814190"
+      },
+      "frame_path": "E:\\devRoot\\robot\\QRS\\images\\det_20260627_122419_510867.jpg",
+      "id": 129,
+      "timestamp": "2026-06-27 12:24:19"
+    },
+    {
+      "type": "interaction",
+      "user_input": "你现在看到了什么",
+      "command": {
+        "raw_text": "你现在看到了什么",
+        "cmd_type": "detect",
+        "intent": "询问当前视野中的物体或场景",
+        "target": "当前视野",
+        "params": {},
+        "confidence": 0.95
+      },
+      "decision": {
+        "action": "do_detect",
+        "target": "当前视野",
+        "params": {},
+        "reasoning": "规则: YOLO检测触发",
+        "priority": 8
+      },
+      "result": {
+        "action": "detect",
+        "detection": {
+          "objects": [
+            "person",
+            "chair",
+            "chair",
+            "chair",
+            "chair",
+            "dining table"
+          ],
+          "confidences": [
+            0.9562,
+            0.93,
+            0.8092,
+            0.627,
+            0.5985,
+            0.542
+          ],
+          "count": 6,
+          "summary": "person, chair, chair, chair, chair, dining table",
+          "timestamp": "2026-06-27 12:24:07.814190"
+        },
+        "frame_saved": "E:\\devRoot\\robot\\QRS\\images\\det_20260627_122419_510867.jpg",
+        "message": "哈哈，我眼前是个热闹的小场景！有一个人坐在四把椅子中间，旁边还有一张餐桌——看起来像是要开饭或者刚开完会的样子。你的餐桌挺结实的，椅子围得整整齐齐的！"
+      },
+      "id": 130,
+      "timestamp": "2026-06-27 12:24:21"
     }
   ]
 }

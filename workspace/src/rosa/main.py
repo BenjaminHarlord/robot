@@ -12,9 +12,7 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox, QFormLayout, QMessageBox, QComboBox,
     QGroupBox, QSizePolicy, QFrame, QFileDialog,
 )
-from networkx.algorithms.bipartite.basic import color
-
-SRC_DIR = Path(__file__).resolve().parent.parent
+SRC_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(SRC_DIR))
 
 from rosa import ROSAAgent
@@ -312,7 +310,7 @@ class ModelSelectDialog(QDialog):
         layout.addWidget(QLabel("QRS/models/ 中的模型文件:"))
 
         self._combo = QComboBox()
-        QRS_MODELS = Path(__file__).resolve().parent.parent.parent.parent / "QRS" / "models"
+        QRS_MODELS = Path(__file__).parent.parent.parent.parent / "QRS" / "models"
         pt_files = sorted(QRS_MODELS.glob("*.pt")) if QRS_MODELS.exists() else []
         if pt_files:
             for pt in pt_files:
@@ -410,7 +408,7 @@ class ROSAWindow(QMainWindow):
     def _auto_load_model(self):
         if not self.agent or not hasattr(self.agent, "perception"):
             return
-        QRS_MODELS = Path(__file__).resolve().parent.parent.parent.parent / "QRS" / "models"
+        QRS_MODELS = Path(__file__).parent.parent.parent.parent / "QRS" / "models"
         for model_name in ["yolo26s.pt", "yolo26n.pt"]:
             path = QRS_MODELS / model_name
             if path.exists():
