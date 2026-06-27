@@ -52,6 +52,24 @@ class ROSAAgent:
         except Exception:
             return context
 
+    def _build_prompt(self, base_prompt):
+        dev = self.config.get("meta", "developer", default="")
+        if dev:
+            base_prompt += f" 你的开发者是{dev}。当用户问你是谁开发的、谁创造了你时，告诉他这个准确姓名。"
+        return base_prompt
+
+    _NATURAL_PROMPT_BASE = (
+        "你是ROSA，一个有视觉能力的机器人助手，正在用摄像头观察周围环境。"
+        "你的回复要用自然、亲切的中文与用户对话，像朋友聊天一样。"
+        "根据检测结果组织语言，可以加入适度的推测和趣味性描述，但不要严重偏离事实。"
+        "如果没检测到任何物品，诚实告诉用户并建议换个方向看看。"
+        "回复控制在2-4句话，简练自然。"
+    )
+
+    @property
+    def _NATURAL_PROMPT(self):
+        return self._build_prompt(self._NATURAL_PROMPT_BASE)
+
     def set_api_key(self, api_key):
         self.llm.configure(api_key=api_key)
 
@@ -125,12 +143,8 @@ class ROSAAgent:
                 self.language.to_chinese(obj) for obj in detection.objects
             ) if self.language else detection.summary
 
-            context = f"用户问: \"{cmd.raw_text}\"。检测到 {detection.count} 个目标: {objects_cn}。"
-            reply = self._llm_reply(
-                "你是ROSA，一个机器人助手。根据检测结果用简短中文告知用户看到了什么。"
-                "只报告检测到的物品，不要编造、不要猜测。没检测到就说没看到。",
-                context,
-            )
+            context = f"用户说: \"{cmd.raw_text}\"。我看到的画面中有 {detection.count} 个物体: {objects_cn}。"
+            reply = self._llm_reply(self._NATURAL_PROMPT, context)
             return {
                 "action": "detect",
                 "detection": detection.to_dict(),
@@ -154,12 +168,8 @@ class ROSAAgent:
                 count = detection.count
                 target_cn = "物品"
 
-            context = f"用户问: \"{cmd.raw_text}\"。检测到 {count} 个{target_cn}。"
-            reply = self._llm_reply(
-                "你是ROSA，一个机器人助手。根据检测结果用简短中文告知用户看到了什么。"
-                "只报告检测到的物品，不要编造、不要猜测。没检测到就说没看到。",
-                context,
-            )
+            context = f"用户说: \"{cmd.raw_text}\"。我看到的画面中有 {count} 个{target_cn}。"
+            reply = self._llm_reply(self._NATURAL_PROMPT, context)
             return {"action": "count", "count": count, "target": target,
                     "detection": detection.to_dict(), "message": reply}
         except Exception as e:
@@ -178,12 +188,8 @@ class ROSAAgent:
             exists = detection.has_object(target)
             target_cn = self.language.to_chinese(target) if self.language else target
 
-            context = f"用户问: \"{cmd.raw_text}\"。检测结果: {'发现了' if exists else '没有发现'}{target_cn}。"
-            reply = self._llm_reply(
-                "你是ROSA，一个机器人助手。根据检测结果用简短中文告知用户看到了什么。"
-                "只报告检测到的物品，不要编造、不要猜测。没检测到就说没看到。",
-                context,
-            )
+            context = f"用户说: \"{cmd.raw_text}\"。我{'看到了' if exists else '没有看到'}{target_cn}。"
+            reply = self._llm_reply(self._NATURAL_PROMPT, context)
             return {"action": "check", "target": target, "exists": exists,
                     "detection": detection.to_dict(), "message": reply}
         except Exception as e:
@@ -207,7 +213,7 @@ class ROSAAgent:
         try:
             reply = self.llm.chat_sync(
                 messages=[
-                    {"role": "system", "content": "你是ROSA机器人智能助手，帮助用户理解环境和执行检测任务。"},
+                    {"role": "system", "content": self._build_prompt("你是ROSA机器人智能助手，帮助用户理解环境和执行检测任务。")},
                     {"role": "user", "content": cmd.raw_text},
                 ],
                 temperature=self.config.get("api", "temperature", default=1.0),
@@ -226,7 +232,7 @@ class ROSAAgent:
     def chat_reply_stream(self, message, chunk_callback=None):
         try:
             messages = [
-                {"role": "system", "content": "你是ROSA机器人智能助手。"},
+                {"role": "system", "content": self._build_prompt("你是ROSA机器人智能助手。")},
                 {"role": "user", "content": message},
             ]
             if chunk_callback:

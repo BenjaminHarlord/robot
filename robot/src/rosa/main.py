@@ -764,11 +764,14 @@ class ROSAWindow(QMainWindow):
         if action == "do_detect":
             self._handle_detect_result(result)
         elif action == "count_objects":
-            self.append_message("ROSA", res.get("message", ""), COLOR_REPLY)
+            msg = res.get("message", "")
+            self.append_message("ROSA", msg, COLOR_REPLY)
+            self._speak_reply(msg)
         elif action == "check_presence":
             exists = res.get("exists", False)
-            self.append_message("ROSA", res.get("message", ""),
-                                COLOR_USER if exists else "#333333")
+            msg = res.get("message", "")
+            self.append_message("ROSA", msg, COLOR_USER if exists else "#333333")
+            self._speak_reply(msg)
         elif action == "query_history":
             self.append_message("ROSA", f"历史检测记录: {res.get('count', 0)} 条", COLOR_SYSTEM)
         elif action == "chat_reply":
@@ -798,30 +801,21 @@ class ROSAWindow(QMainWindow):
                 if info and detection:
                     frame_path = self.agent.perception.save_frame(detection)
                     self.agent.data.insert_detection(info, frame_path)
-                    self._handle_detect_info(info, frame_path)
-                    return
+                    self._show_detect_preview_frame(info, frame_path)
             self.append_message("ROSA", res.get("message", "检测失败"), COLOR_RED)
             return
 
-        return self._handle_detect_info(
+        reply = res.get("message", "")
+        if reply:
+            self.append_message("ROSA", reply, COLOR_REPLY)
+            self._speak_reply(reply)
+
+        self._show_detect_preview_frame(
             res.get("detection", {}),
             res.get("frame_saved", ""),
         )
 
-    def _handle_detect_info(self, info, frame_path):
-        model_name = "N/A"
-        if self.agent and self.agent.perception and self.agent.perception.model_path:
-            model_name = Path(self.agent.perception.model_path).name
-
-        lines = [
-            f"检测完成 — 模型: {model_name}",
-            f"目标: {info.get('summary', '无')}",
-            f"数量: {info.get('count', 0)}",
-            f"帧已保存至 QRS/images/",
-        ]
-
-        self.append_message("ROSA", "\n".join(lines), COLOR_SYSTEM)
-
+    def _show_detect_preview_frame(self, info, frame_path):
         if self.agent and self.agent.perception.is_loaded:
             latest = self.agent.perception.get_latest_detection()
             if latest and latest.annotated_frame is not None:

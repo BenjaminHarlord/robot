@@ -5,6 +5,10 @@ QRS_ROOT = Path(__file__).resolve().parent.parent.parent.parent / "QRS"
 CONFIG_PATH = QRS_ROOT / "config" / "rosa_config.json"
 
 DEFAULT_CONFIG = {
+    "meta": {
+        "developer": "安德烈·萨沙·阿列克谢维奇",
+        "project": "ROSA",
+    },
     "agent": {"name": "ROSA Agent", "version": "1.0.0"},
     "api": {
         "base_url": "https://api.deepseek.com",

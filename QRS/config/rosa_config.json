@@ -1,4 +1,8 @@
 {
+    "meta": {
+        "developer": "安德烈·萨沙·阿列克谢维奇",
+        "project": "ROSA"
+    },
     "agent": {
         "name": "ROSA Agent",
         "version": "1.0.0"
